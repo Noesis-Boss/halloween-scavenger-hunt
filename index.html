@@ -622,6 +622,7 @@
       </div>
 
       <!-- Live QR Scan or Camera Selfie Proof -->
+      <input id="selfieFileInput" type="file" accept="image/*" capture="user" class="hidden" onchange="handleSelfieFile(this)">
       <div class="grid grid-cols-2 gap-2">
         <button type="button" onclick="closeVerificationDrawer(); switchTab('signin'); startMobileQrScanner();" class="min-h-[48px] py-2.5 px-3 rounded-xl border-2 border-halloween-orange bg-halloween-orange/15 flex items-center justify-center gap-1.5 text-xs font-extrabold text-halloween-orange active:scale-95 transition">
           <i data-lucide="qr-code" class="w-4 h-4"></i>
@@ -632,6 +633,7 @@
           <span id="cameraSnapLabel">Selfie Proof</span>
         </button>
       </div>
+      <img id="selfiePreviewImg" alt="Selfie proof preview" class="hidden w-full h-32 object-cover rounded-xl border border-halloween-slime">
 
       <div id="drawerErrorMsg" class="hidden text-xs text-halloween-blood font-bold bg-red-950/50 p-2.5 rounded-xl border border-red-800 animate-haptic-shake"></div>
 
@@ -1625,11 +1627,14 @@
       if (window.lucide) lucide.createIcons();
     }
 
+    let currentSelfieDataUrl = null;
+
     function openVerificationDrawer(clueId) {
       const clue = clues.find(c => c.id === clueId);
       if (!clue) return;
       currentVerifyingClue = clue;
       photoSnapVerified = false;
+      currentSelfieDataUrl = null;
 
       document.getElementById('drawerClueIcon').innerText = clue.icon;
       document.getElementById('drawerClueTitle').innerText = clue.title;
@@ -1637,8 +1642,13 @@
       document.getElementById('drawerClueRiddle').innerText = clue.riddle;
       document.getElementById('drawerCodeInput').value = '';
       document.getElementById('drawerErrorMsg').classList.add('hidden');
-      document.getElementById('cameraSnapLabel').innerText = 'Tap to Snap Team Selfie Proof';
+      document.getElementById('cameraSnapLabel').innerText = 'Selfie Proof';
       document.getElementById('cameraSnapIcon').className = 'w-4 h-4 text-halloween-orange';
+      const previewImg = document.getElementById('selfiePreviewImg');
+      if (previewImg) {
+        previewImg.src = '';
+        previewImg.classList.add('hidden');
+      }
 
       const drawer = document.getElementById('drawerVerification');
       drawer.classList.remove('drawer-hidden');
@@ -1648,6 +1658,7 @@
       const drawer = document.getElementById('drawerVerification');
       drawer.classList.add('drawer-hidden');
       currentVerifyingClue = null;
+      currentSelfieDataUrl = null;
     }
 
     function fillExamplePasscode() {
@@ -1658,13 +1669,43 @@
     }
 
     function simulateMobileCameraSnap() {
-      photoSnapVerified = true;
-      const label = document.getElementById('cameraSnapLabel');
-      const icon = document.getElementById('cameraSnapIcon');
-      label.innerHTML = '<span class="text-halloween-slime font-extrabold">📸 Selfie Captured & Stamped!</span>';
-      icon.className = 'w-4 h-4 text-halloween-slime';
-      playSpookyTone('chime');
-      showMobileToast('Selfie proof attached! 📸');
+      const fileInput = document.getElementById('selfieFileInput');
+      if (fileInput) fileInput.click();
+    }
+
+    function handleSelfieFile(inputEl) {
+      const file = inputEl?.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxW = 240;
+          const scale = Math.min(1, maxW / img.width);
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          currentSelfieDataUrl = canvas.toDataURL('image/jpeg', 0.6);
+          photoSnapVerified = true;
+
+          const previewImg = document.getElementById('selfiePreviewImg');
+          if (previewImg) {
+            previewImg.src = currentSelfieDataUrl;
+            previewImg.classList.remove('hidden');
+          }
+          const label = document.getElementById('cameraSnapLabel');
+          const icon = document.getElementById('cameraSnapIcon');
+          label.innerHTML = '<span class="text-halloween-slime font-extrabold">📸 Selfie Ready!</span>';
+          icon.className = 'w-4 h-4 text-halloween-slime';
+          playSpookyTone('chime');
+          showMobileToast('Selfie proof captured! 📸');
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+      inputEl.value = '';
     }
 
     function submitMobileClueVerification() {
@@ -1683,6 +1724,18 @@
       if (!team.completedClueIds.includes(currentVerifyingClue.id)) {
         team.completedClueIds.push(currentVerifyingClue.id);
         team.score += currentVerifyingClue.points;
+      }
+
+      if (currentSelfieDataUrl) {
+        alerts.unshift({
+          id: 'selfie-' + Date.now(),
+          teamName: team.name,
+          timestamp: Date.now(),
+          message: `📸 ${team.name} uploaded selfie proof at "${currentVerifyingClue.title}" (+${currentVerifyingClue.points} pts)`,
+          score: team.score,
+          photoUrl: currentSelfieDataUrl,
+          viewed: false
+        });
       }
 
       playSpookyTone('chime');
@@ -1938,13 +1991,16 @@
         } else {
           alerts.forEach(a => {
             const row = document.createElement('div');
-            row.className = 'p-2.5 rounded-xl bg-halloween-black/80 border border-halloween-purple/30 text-xs flex items-start gap-2';
+            row.className = 'p-2.5 rounded-xl bg-halloween-black/80 border border-halloween-purple/30 text-xs space-y-2';
             row.innerHTML = `
-              <span class="text-base shrink-0">🔔</span>
-              <div class="flex-1 min-w-0">
-                <div class="font-bold text-gray-200">${a.message}</div>
-                <div class="text-[10px] text-gray-400 mt-0.5">${new Date(a.timestamp).toLocaleTimeString()}</div>
+              <div class="flex items-start gap-2">
+                <span class="text-base shrink-0">${a.photoUrl ? '📸' : '🔔'}</span>
+                <div class="flex-1 min-w-0">
+                  <div class="font-bold text-gray-200">${a.message}</div>
+                  <div class="text-[10px] text-gray-400 mt-0.5">${new Date(a.timestamp).toLocaleTimeString()}</div>
+                </div>
               </div>
+              ${a.photoUrl ? `<img src="${a.photoUrl}" alt="Selfie Proof" class="w-full max-h-40 object-cover rounded-lg border border-halloween-slime/50">` : ''}
             `;
             inbox.appendChild(row);
           });
@@ -2001,11 +2057,17 @@
                 <div class="text-[10px] text-gray-400 font-mono truncate">${c.secretCode} &bull; ${c.points} pts &bull; ${c.location}</div>
               </div>
             </div>
-            <div class="flex items-center gap-1.5 shrink-0">
-              <button onclick="openAddClueDrawer('${c.id}')" class="min-h-[36px] px-2.5 py-1 rounded-lg bg-halloween-night border border-halloween-orange/60 text-[11px] font-bold text-halloween-orange">
+            <div class="flex items-center gap-1 shrink-0">
+              <button onclick="moveAdminClue(${idx}, -1)" ${idx === 0 ? 'disabled' : ''} class="min-h-[34px] px-2 py-1 rounded-lg bg-halloween-night border border-halloween-purple/50 text-[11px] font-bold text-gray-300 disabled:opacity-30">
+                ↑
+              </button>
+              <button onclick="moveAdminClue(${idx}, 1)" ${idx === clues.length - 1 ? 'disabled' : ''} class="min-h-[34px] px-2 py-1 rounded-lg bg-halloween-night border border-halloween-purple/50 text-[11px] font-bold text-gray-300 disabled:opacity-30">
+                ↓
+              </button>
+              <button onclick="openAddClueDrawer('${c.id}')" class="min-h-[34px] px-2 py-1 rounded-lg bg-halloween-night border border-halloween-orange/60 text-[11px] font-bold text-halloween-orange">
                 Edit
               </button>
-              <button onclick="deleteAdminClue('${c.id}')" class="min-h-[36px] px-2 py-1 rounded-lg bg-red-950/80 border border-red-700/60 text-[11px] font-bold text-red-300">
+              <button onclick="deleteAdminClue('${c.id}')" class="min-h-[34px] px-2 py-1 rounded-lg bg-red-950/80 border border-red-700/60 text-[11px] font-bold text-red-300">
                 Del
               </button>
             </div>
@@ -2244,6 +2306,17 @@
     function closeAddClueDrawer() {
       editingClueId = null;
       document.getElementById('drawerAddClue').classList.add('drawer-hidden');
+    }
+
+    function moveAdminClue(index, direction) {
+      const targetIndex = index + direction;
+      if (targetIndex < 0 || targetIndex >= clues.length) return;
+      const temp = clues[index];
+      clues[index] = clues[targetIndex];
+      clues[targetIndex] = temp;
+      saveMobileState();
+      renderAllViews();
+      showMobileToast('Clue order updated!');
     }
 
     function deleteAdminClue(clueId) {
