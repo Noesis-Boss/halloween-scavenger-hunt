@@ -501,8 +501,15 @@
           <div class="flex items-center justify-between">
             <h4 class="font-bold text-xs text-white uppercase tracking-wider flex items-center gap-1.5">
               <i data-lucide="users" class="w-4 h-4 text-halloween-slime"></i>
-              <span>Squad Overrides & Bonus Points</span>
+              <span>Squad Manager, Overrides & Bonus Points</span>
             </h4>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <input id="adminSquadIconInput" type="text" value="👻" class="w-11 bg-halloween-black border border-halloween-purple rounded-xl px-2 py-2 text-center text-sm text-white focus:outline-none focus:border-halloween-orange">
+            <input id="adminSquadNameInput" type="text" placeholder="Add or edit squad name..." class="flex-1 bg-halloween-black border border-halloween-purple rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-halloween-orange">
+            <button id="adminSquadSaveBtn" onclick="saveAdminSquad()" class="min-h-[38px] px-3 rounded-xl bg-halloween-orange text-black font-black text-xs shrink-0">
+              + Squad
+            </button>
           </div>
           <div id="adminSquadActionsList" class="space-y-2">
             <!-- Dynamic Squad Rows -->
@@ -1960,12 +1967,18 @@
               </div>
             </div>
 
-            <div class="flex items-center gap-1.5 shrink-0">
-              <button onclick="awardSquadBonus('${t.id}', 25)" class="min-h-[36px] px-2 py-1 rounded-lg bg-halloween-night border border-halloween-purple text-[11px] font-bold text-amber-300">
+            <div class="flex items-center gap-1 shrink-0">
+              <button onclick="editAdminSquad('${t.id}')" class="min-h-[34px] px-2 py-1 rounded-lg bg-halloween-night border border-halloween-orange/60 text-[11px] font-bold text-halloween-orange">
+                Edit
+              </button>
+              <button onclick="awardSquadBonus('${t.id}', 25)" class="min-h-[34px] px-2 py-1 rounded-lg bg-halloween-night border border-halloween-purple text-[11px] font-bold text-amber-300">
                 +25
               </button>
-              <button onclick="forceFinishSquad('${t.id}')" class="min-h-[36px] px-2 py-1 rounded-lg bg-emerald-950 border border-emerald-600 text-[11px] font-bold text-emerald-300">
+              <button onclick="forceFinishSquad('${t.id}')" class="min-h-[34px] px-2 py-1 rounded-lg bg-emerald-950 border border-emerald-600 text-[11px] font-bold text-emerald-300">
                 Finish
+              </button>
+              <button onclick="deleteAdminSquad('${t.id}')" class="min-h-[34px] px-2 py-1 rounded-lg bg-red-950/80 border border-red-700/60 text-[11px] font-bold text-red-300">
+                Del
               </button>
             </div>
           `;
@@ -2081,6 +2094,73 @@
       saveMobileState();
       renderAdminDeck();
       showMobileToast('Alert logs cleared.');
+    }
+
+    let editingSquadId = null;
+
+    function editAdminSquad(teamId) {
+      const team = teams.find(t => t.id === teamId);
+      if (!team) return;
+      editingSquadId = team.id;
+      document.getElementById('adminSquadIconInput').value = team.icon;
+      document.getElementById('adminSquadNameInput').value = team.name;
+      document.getElementById('adminSquadSaveBtn').innerText = 'Save';
+      document.getElementById('adminSquadNameInput').focus();
+    }
+
+    function saveAdminSquad() {
+      const icon = document.getElementById('adminSquadIconInput').value.trim() || '👻';
+      const name = document.getElementById('adminSquadNameInput').value.trim();
+      if (!name) {
+        showMobileToast('Enter a squad name!');
+        return;
+      }
+      if (editingSquadId) {
+        const team = teams.find(t => t.id === editingSquadId);
+        if (team) {
+          team.icon = icon;
+          team.name = name;
+        }
+        editingSquadId = null;
+        document.getElementById('adminSquadSaveBtn').innerText = '+ Squad';
+        showMobileToast(`Updated squad "${name}"!`);
+      } else {
+        const newSquad = {
+          id: 't-' + Date.now(),
+          name,
+          icon,
+          score: 0,
+          completedClueIds: [],
+          startedAt: Date.now(),
+          finishedAt: null,
+          status: 'hunting',
+          alertSent: false
+        };
+        teams.push(newSquad);
+        showMobileToast(`Added squad "${name}"!`);
+      }
+      document.getElementById('adminSquadIconInput').value = '👻';
+      document.getElementById('adminSquadNameInput').value = '';
+      saveMobileState();
+      renderAllViews();
+    }
+
+    function deleteAdminSquad(teamId) {
+      if (teams.length <= 1) {
+        showMobileToast('Must keep at least 1 squad!');
+        return;
+      }
+      const target = teams.find(t => t.id === teamId);
+      if (!target) return;
+      teams = teams.filter(t => t.id !== teamId);
+      if (activeTeamId === teamId) activeTeamId = teams[0].id;
+      if (editingSquadId === teamId) {
+        editingSquadId = null;
+        document.getElementById('adminSquadSaveBtn').innerText = '+ Squad';
+      }
+      saveMobileState();
+      renderAllViews();
+      showMobileToast(`Deleted squad "${target.name}"`);
     }
 
     function awardSquadBonus(teamId, pts) {
