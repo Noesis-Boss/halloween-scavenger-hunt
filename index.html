@@ -613,7 +613,7 @@
 
       <!-- Secret Code Input -->
       <div>
-        <label class="text-xs font-bold uppercase text-gray-300 block mb-1.5">Enter Physical Rune / Passcode</label>
+        <label class="text-xs font-bold uppercase text-gray-300 block mb-1.5">Option A: Enter Rune / Passcode</label>
         <div class="relative">
           <input id="drawerCodeInput" type="text" placeholder="e.g. JACKO" autocapitalize="characters" class="w-full bg-halloween-black border-2 border-halloween-purple rounded-xl px-4 py-3 text-white font-mono text-base uppercase focus:outline-none focus:border-halloween-orange">
           <button onclick="fillExamplePasscode()" class="absolute right-2.5 top-2.5 px-2 py-1 rounded bg-halloween-card text-[10px] text-halloween-orange font-bold">Use Hint Key</button>
@@ -621,19 +621,28 @@
         <p id="drawerCodeHint" class="text-[11px] text-gray-400 mt-1">Found etched onto the physical prop at the hunt location.</p>
       </div>
 
-      <!-- Live QR Scan or Camera Selfie Proof -->
-      <input id="selfieFileInput" type="file" accept="image/*" capture="user" class="hidden" onchange="handleSelfieFile(this)">
-      <div class="grid grid-cols-2 gap-2">
-        <button type="button" onclick="closeVerificationDrawer(); switchTab('signin'); startMobileQrScanner();" class="min-h-[48px] py-2.5 px-3 rounded-xl border-2 border-halloween-orange bg-halloween-orange/15 flex items-center justify-center gap-1.5 text-xs font-extrabold text-halloween-orange active:scale-95 transition">
-          <i data-lucide="qr-code" class="w-4 h-4"></i>
-          <span>Live Scan Clue QR</span>
-        </button>
-        <button type="button" onclick="simulateMobileCameraSnap()" class="min-h-[48px] py-2.5 px-3 rounded-xl border-2 border-dashed border-halloween-purple/50 bg-halloween-card/60 flex items-center justify-center gap-1.5 text-xs text-gray-300 active:border-halloween-orange">
-          <i id="cameraSnapIcon" data-lucide="camera" class="w-4 h-4 text-halloween-orange"></i>
-          <span id="cameraSnapLabel">Selfie Proof</span>
-        </button>
+      <div class="flex items-center gap-2 my-1">
+        <div class="h-px bg-halloween-purple/40 flex-1"></div>
+        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">— OR —</span>
+        <div class="h-px bg-halloween-purple/40 flex-1"></div>
       </div>
-      <img id="selfiePreviewImg" alt="Selfie proof preview" class="hidden w-full h-32 object-cover rounded-xl border border-halloween-slime">
+
+      <!-- Live QR Scan or Camera Selfie Proof -->
+      <div>
+        <label class="text-xs font-bold uppercase text-gray-300 block mb-1.5">Option B: Scan QR or Snap Selfie Proof</label>
+        <input id="selfieFileInput" type="file" accept="image/*" capture="user" class="hidden" onchange="handleSelfieFile(this)">
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" onclick="closeVerificationDrawer(); switchTab('signin'); startMobileQrScanner();" class="min-h-[48px] py-2.5 px-3 rounded-xl border-2 border-halloween-orange bg-halloween-orange/15 flex items-center justify-center gap-1.5 text-xs font-extrabold text-halloween-orange active:scale-95 transition">
+            <i data-lucide="qr-code" class="w-4 h-4"></i>
+            <span>Live Scan Clue QR</span>
+          </button>
+          <button type="button" onclick="simulateMobileCameraSnap()" class="min-h-[48px] py-2.5 px-3 rounded-xl border-2 border-dashed border-halloween-purple/50 bg-halloween-card/60 flex items-center justify-center gap-1.5 text-xs text-gray-300 active:border-halloween-orange">
+            <i id="cameraSnapIcon" data-lucide="camera" class="w-4 h-4 text-halloween-orange"></i>
+            <span id="cameraSnapLabel">Selfie Proof</span>
+          </button>
+        </div>
+        <img id="selfiePreviewImg" alt="Selfie proof preview" class="hidden w-full h-32 object-cover rounded-xl border border-halloween-slime mt-2">
+      </div>
 
       <div id="drawerErrorMsg" class="hidden text-xs text-halloween-blood font-bold bg-red-950/50 p-2.5 rounded-xl border border-red-800 animate-haptic-shake"></div>
 
@@ -1712,9 +1721,15 @@
       if (!currentVerifyingClue) return;
       const input = document.getElementById('drawerCodeInput').value.trim().toUpperCase();
       const error = document.getElementById('drawerErrorMsg');
+      const hasValidCode = Boolean(input && input === currentVerifyingClue.secretCode.toUpperCase());
+      const hasValidSelfie = Boolean(currentSelfieDataUrl);
 
-      if (input !== currentVerifyingClue.secretCode.toUpperCase()) {
-        error.innerText = `Invalid passcode for "${currentVerifyingClue.title}". Try Hint Key or re-check the prop.`;
+      if (!hasValidCode && !hasValidSelfie) {
+        if (input && input !== currentVerifyingClue.secretCode.toUpperCase()) {
+          error.innerText = `Incorrect passcode for "${currentVerifyingClue.title}". Check prop or snap selfie proof instead.`;
+        } else {
+          error.innerText = 'Please enter correct passcode OR snap team selfie proof to verify.';
+        }
         error.classList.remove('hidden');
         playSpookyTone('alert');
         return;
@@ -1731,7 +1746,7 @@
           id: 'selfie-' + Date.now(),
           teamName: team.name,
           timestamp: Date.now(),
-          message: `📸 ${team.name} uploaded selfie proof at "${currentVerifyingClue.title}" (+${currentVerifyingClue.points} pts)`,
+          message: `📸 ${team.name} verified "${currentVerifyingClue.title}" via selfie (+${currentVerifyingClue.points} pts)`,
           score: team.score,
           photoUrl: currentSelfieDataUrl,
           viewed: false
