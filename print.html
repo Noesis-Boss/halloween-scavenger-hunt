@@ -84,6 +84,24 @@
         }
       } catch {}
 
+      try {
+        const ntfyRes = await fetch('https://ntfy.sh/spookhunt-noesis-1881-state/json?poll=1&since=24h', { cache: 'no-store' });
+        if (ntfyRes.ok) {
+          const lines = (await ntfyRes.text()).trim().split('\n').filter(Boolean);
+          for (let i = lines.length - 1; i >= 0; i--) {
+            try {
+              const evt = JSON.parse(lines[i]);
+              if (evt.event === 'message' && evt.message) {
+                const parsed = JSON.parse(evt.message);
+                if (Array.isArray(parsed.teams) && parsed.teams.length) teams = parsed.teams;
+                if (Array.isArray(parsed.clues) && parsed.clues.length) clues = parsed.clues;
+                break;
+              }
+            } catch {}
+          }
+        }
+      } catch {}
+
       const squadGrid = document.getElementById('squadGrid');
       teams.forEach(t => {
         const card = document.createElement('div');

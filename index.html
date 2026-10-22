@@ -458,6 +458,10 @@
               Clear Logs
             </button>
           </div>
+          <a href="https://ntfy.sh/spookhunt-noesis-1881-alerts" target="_blank" class="w-full min-h-[40px] py-2 px-3 rounded-xl bg-halloween-black/90 border border-halloween-slime/50 text-halloween-slime font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-halloween-slime hover:text-black transition">
+            <i data-lucide="smartphone" class="w-4 h-4"></i>
+            <span>Subscribe Phone to Live Push Alerts (ntfy.sh)</span>
+          </a>
         </div>
 
         <!-- Outbound JSON Webhook Simulator Box -->
@@ -908,6 +912,7 @@
       renderAllViews();
       startStopwatch();
       syncFromServer();
+      initCloudSync();
       setInterval(syncFromServer, 3000);
 
       if (window.lucide) {
@@ -915,27 +920,67 @@
       }
     }
 
+    const NTFY_STATE_URL = 'https://ntfy.sh/spookhunt-noesis-1881-state';
+    const NTFY_ALERT_URL = 'https://ntfy.sh/spookhunt-noesis-1881-alerts';
     let lastServerUpdatedAt = 0;
+
+    function applyRemoteSnapshot(remote) {
+      if (!remote || !remote.updatedAt || remote.updatedAt <= lastServerUpdatedAt) return;
+      const prevAlertCount = alerts.length;
+      if (Array.isArray(remote.clues) && remote.clues.length) clues = remote.clues;
+      if (Array.isArray(remote.teams) && remote.teams.length) teams = remote.teams;
+      if (Array.isArray(remote.alerts)) alerts = remote.alerts;
+      lastServerUpdatedAt = remote.updatedAt;
+      saveMobileState(false);
+      renderAllViews();
+      if (alerts.length > prevAlertCount && prevAlertCount > 0) {
+        playSpookyTone('alert');
+        updateWebhookJsonPreview(alerts[0]);
+        showMobileToast(alerts[0].message);
+      }
+    }
+
+    async function initCloudSync() {
+      try {
+        const res = await fetch(`${NTFY_STATE_URL}/json?poll=1&since=24h`, { cache: 'no-store' });
+        if (res.ok) {
+          const lines = (await res.text()).trim().split('\n').filter(Boolean);
+          for (let i = lines.length - 1; i >= 0; i--) {
+            try {
+              const evt = JSON.parse(lines[i]);
+              if (evt.event === 'message' && evt.message) {
+                const parsed = JSON.parse(evt.message);
+                if (parsed.updatedAt) {
+                  applyRemoteSnapshot(parsed);
+                  break;
+                }
+              }
+            } catch {}
+          }
+        }
+      } catch {}
+
+      try {
+        if (typeof EventSource !== 'undefined') {
+          const es = new EventSource(`${NTFY_STATE_URL}/sse`);
+          es.onmessage = (e) => {
+            try {
+              const evt = JSON.parse(e.data);
+              if (evt.message) applyRemoteSnapshot(JSON.parse(evt.message));
+            } catch {}
+          };
+        }
+      } catch {}
+    }
 
     async function syncFromServer() {
       try {
         const res = await fetch('/api/state', { cache: 'no-store' });
         if (!res.ok) return;
         const remote = await res.json();
-        if (remote.updatedAt && remote.updatedAt > lastServerUpdatedAt) {
-          const prevAlertCount = alerts.length;
-          if (Array.isArray(remote.clues) && remote.clues.length) clues = remote.clues;
-          if (Array.isArray(remote.teams) && remote.teams.length) teams = remote.teams;
-          if (Array.isArray(remote.alerts)) alerts = remote.alerts;
-          lastServerUpdatedAt = remote.updatedAt;
-          saveMobileState(false);
-          renderAllViews();
-          if (alerts.length > prevAlertCount && prevAlertCount > 0) {
-            playSpookyTone('alert');
-            updateWebhookJsonPreview(alerts[0]);
-            showMobileToast(alerts[0].message);
-          }
-        } else if (!remote.updatedAt) {
+        if (remote.updatedAt) {
+          applyRemoteSnapshot(remote);
+        } else {
           saveMobileState(true);
         }
       } catch {}
@@ -947,14 +992,17 @@
       localStorage.setItem(STORAGE_KEY_ALERTS, JSON.stringify(alerts));
       localStorage.setItem(STORAGE_KEY_ACTIVE_TEAM, activeTeamId);
       if (pushRemote) {
+        const snapshot = { clues, teams, alerts, updatedAt: Date.now() };
+        lastServerUpdatedAt = snapshot.updatedAt;
         fetch('/api/state', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ clues, teams, alerts })
-        })
-          .then(r => r.json())
-          .then(d => { if (d.updatedAt) lastServerUpdatedAt = d.updatedAt; })
-          .catch(() => {});
+          body: JSON.stringify(snapshot)
+        }).catch(() => {});
+        fetch(NTFY_STATE_URL, {
+          method: 'POST',
+          body: JSON.stringify(snapshot)
+        }).catch(() => {});
       }
     }
 
@@ -1677,6 +1725,11 @@
       playSpookyTone('alert');
       updateWebhookJsonPreview(newAlert);
       fetch('/api/hunt-complete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newAlert) }).catch(() => {});
+      fetch(NTFY_ALERT_URL, {
+        method: 'POST',
+        headers: { 'Title': `SpookHunt Victory: ${team.name}`, 'Priority': 'high', 'Tags': 'jack_o_lantern,trophy' },
+        body: newAlert.message
+      }).catch(() => {});
       showMobileToast(`🚨 ADMIN DISPATCH: ${team.name} completed the hunt!`);
 
       updateAlertBadges();
@@ -1969,6 +2022,11 @@
       alerts.unshift(mock);
       saveMobileState();
       playSpookyTone('alert');
+      fetch(NTFY_ALERT_URL, {
+        method: 'POST',
+        headers: { 'Title': `SpookHunt Test Alert: ${active.name}`, 'Priority': 'high', 'Tags': 'rotating_light,jack_o_lantern' },
+        body: mock.message
+      }).catch(() => {});
       showMobileToast('Fired simulated alert! 🚨');
       updateWebhookJsonPreview(mock);
       renderAdminDeck();
