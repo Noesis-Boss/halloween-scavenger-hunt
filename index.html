@@ -1,0 +1,2111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>SpookHunt Mobile: Halloween Scavenger Hunt & QR Sign-in</title>
+
+  <!-- Typography: Creepster & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- HTML5 QR Code Scanner Library (Direct Camera Feed on Mobile) -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+  <!-- QRCode.js Library for generating Team Sign-in QR Codes -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            halloween: {
+              black: '#07030d',
+              night: '#0d0618',
+              card: '#160b28',
+              cardHighlight: '#22113d',
+              purple: '#9333ea',
+              purpleGlow: '#c084fc',
+              orange: '#ff5500',
+              orangeGlow: '#ff7700',
+              amber: '#fbbf24',
+              slime: '#10b981',
+              blood: '#f43f5e',
+            }
+          },
+          fontFamily: {
+            creep: ['Creepster', 'cursive'],
+            sans: ['"Plus Jakarta Sans"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+          },
+          boxShadow: {
+            'glow-orange': '0 0 20px -3px rgba(255, 85, 0, 0.55)',
+            'glow-purple': '0 0 25px -4px rgba(147, 51, 234, 0.55)',
+            'glow-slime': '0 0 20px -3px rgba(16, 185, 129, 0.5)',
+            'mobile-bottom': '0 -10px 25px -5px rgba(0, 0, 0, 0.85)',
+          },
+          animation: {
+            'pulse-glow': 'pulseGlow 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'spooky-float': 'spookyFloat 3.5s ease-in-out infinite',
+            'scanner-beam': 'scannerBeam 2s ease-in-out infinite alternate',
+            'haptic-shake': 'hapticShake 0.35s ease-in-out',
+          },
+          keyframes: {
+            pulseGlow: {
+              '0%, 100%': { filter: 'drop-shadow(0 0 8px rgba(255, 85, 0, 0.4))' },
+              '50%': { filter: 'drop-shadow(0 0 20px rgba(255, 85, 0, 0.95))' },
+            },
+            spookyFloat: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-6px)' },
+            },
+            scannerBeam: {
+              '0%': { top: '8%' },
+              '100%': { top: '92%' }
+            },
+            hapticShake: {
+              '0%, 100%': { transform: 'translateX(0)' },
+              '20%, 60%': { transform: 'translateX(-6px)' },
+              '40%, 80%': { transform: 'translateX(6px)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root {
+      color-scheme: dark;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body {
+      background-color: #07030d;
+      background-image: 
+        radial-gradient(circle at 10% 10%, rgba(147, 51, 234, 0.22) 0%, transparent 45%),
+        radial-gradient(circle at 90% 80%, rgba(255, 85, 0, 0.18) 0%, transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(13, 6, 24, 0.94) 0%, #07030d 100%);
+      color: #f3f4f6;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      touch-action: manipulation;
+    }
+    .safe-top {
+      padding-top: env(safe-area-inset-top, 0.5rem);
+    }
+    .safe-bottom {
+      padding-bottom: max(env(safe-area-inset-bottom, 0.5rem), 0.75rem);
+    }
+    .glass-deck {
+      background: rgba(18, 9, 36, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(147, 51, 234, 0.3);
+    }
+    .glass-orange {
+      background: rgba(28, 14, 46, 0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 85, 0, 0.35);
+    }
+    .drawer-backdrop {
+      transition: opacity 0.25s ease-out;
+    }
+    .drawer-content {
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .drawer-hidden .drawer-backdrop {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .drawer-hidden .drawer-content {
+      transform: translateY(100%);
+    }
+    button:active, .touch-feedback:active {
+      transform: scale(0.96);
+      transition: transform 0.1s;
+    }
+    ::-webkit-scrollbar { display: none; }
+    * { -ms-overflow-style: none; scrollbar-width: none; }
+    #qrVideoPreview video {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover !important;
+      border-radius: 1rem;
+    }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen selection:bg-halloween-orange selection:text-black antialiased">
+
+  <!-- STICKY TOP BAR: Optimized for Phone Thumb Navigation -->
+  <header class="sticky top-0 z-40 glass-deck border-b border-halloween-purple/30 safe-top shadow-lg">
+    <div class="px-3.5 py-2.5 max-w-md mx-auto w-full flex items-center justify-between gap-2">
+      <!-- Active Squad Pill -->
+      <button onclick="switchTab('signin')" class="flex items-center gap-2 bg-halloween-night border border-halloween-purple/50 rounded-full pl-2 pr-3 py-1 text-left min-w-0 shadow-inner">
+        <span id="topTeamIcon" class="text-xl shrink-0 animate-spooky-float">👻</span>
+        <div class="min-w-0">
+          <div class="text-[9.5px] text-halloween-purpleGlow font-bold uppercase tracking-wider flex items-center gap-1">
+            <span>Squad</span>
+            <i data-lucide="qr-code" class="w-3 h-3 text-halloween-orange"></i>
+          </div>
+          <div id="topTeamName" class="text-xs font-black text-white truncate max-w-[95px] xs:max-w-[125px]">The Phantoms</div>
+        </div>
+      </button>
+
+      <!-- Live Elapsed Time & Points Badges -->
+      <div class="flex items-center gap-1.5 shrink-0">
+        <div class="bg-halloween-night border border-halloween-orange/40 rounded-xl px-2.5 py-1 text-center shadow-inner">
+          <div class="text-[8.5px] uppercase font-bold text-gray-400 leading-none">Time</div>
+          <div id="topTimerDisplay" class="font-mono text-xs font-black text-halloween-orange mt-0.5 leading-none">00:00:00</div>
+        </div>
+
+        <div class="bg-halloween-night border border-halloween-slime/40 rounded-xl px-2 py-1 text-center shadow-inner">
+          <div class="text-[8.5px] uppercase font-bold text-gray-400 leading-none">Score</div>
+          <div id="topScoreDisplay" class="font-mono text-xs font-black text-halloween-slime mt-0.5 leading-none">0 pts</div>
+        </div>
+
+        <!-- Quick Audio Toggle -->
+        <button id="soundQuickBtn" onclick="toggleSpookyAudio()" aria-label="Toggle Sound Effects" class="w-9 h-9 rounded-xl bg-halloween-night border border-halloween-purple/50 flex items-center justify-center text-halloween-orange hover:border-halloween-orange transition shadow">
+          <i id="soundIcon" data-lucide="volume-2" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Active Hunt Progress Mini Strip -->
+    <div class="w-full bg-halloween-night h-1.5 overflow-hidden">
+      <div id="topMiniProgressBar" class="h-full bg-gradient-to-r from-halloween-purple via-halloween-orange to-halloween-slime w-0 transition-all duration-500"></div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER (Centered Phone Viewport, pb-24 for Sticky Bottom Nav) -->
+  <main class="flex-grow max-w-md mx-auto w-full px-3.5 pt-3 pb-28">
+
+    <!-- ============================================ -->
+    <!-- TAB 1: HUNT / CLUES CHECKLIST TAB            -->
+    <!-- ============================================ -->
+    <section id="tabHunt" class="space-y-3.5">
+      
+      <!-- Progress Summary & Status Card -->
+      <div class="glass-orange rounded-2xl p-4 shadow-glow-orange border border-halloween-orange/35 relative overflow-hidden">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-1.5">
+            <span class="text-xl">🎃</span>
+            <span class="font-creep text-xl text-halloween-orange tracking-wide">CURSED PURSUIT</span>
+          </div>
+          <span id="huntStatusPill" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+            In Progress
+          </span>
+        </div>
+
+        <div class="flex items-end justify-between mb-1.5">
+          <span class="text-xs text-gray-300 font-medium">Relics Banished:</span>
+          <span id="huntProgressCountText" class="font-mono text-sm font-black text-halloween-orange">0 / 8 (0%)</span>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="w-full bg-halloween-black rounded-full h-3 p-0.5 border border-halloween-purple/40 overflow-hidden mb-2.5">
+          <div id="huntMainProgressBar" class="h-full bg-gradient-to-r from-halloween-purple via-halloween-orange to-halloween-slime rounded-full w-0 transition-all duration-500 shadow"></div>
+        </div>
+
+        <!-- Filter Pills -->
+        <div class="flex items-center gap-1.5 pt-1">
+          <button onclick="setFilter('all')" id="btnFilterAll" class="flex-1 py-1.5 rounded-lg text-xs font-extrabold bg-halloween-orange text-black transition">
+            All (<span id="countAll">8</span>)
+          </button>
+          <button onclick="setFilter('todo')" id="btnFilterTodo" class="flex-1 py-1.5 rounded-lg text-xs font-bold bg-halloween-night text-gray-300 border border-halloween-purple/40 hover:text-white transition">
+            Remaining (<span id="countTodo">8</span>)
+          </button>
+          <button onclick="setFilter('done')" id="btnFilterDone" class="flex-1 py-1.5 rounded-lg text-xs font-bold bg-halloween-night text-gray-300 border border-halloween-purple/40 hover:text-white transition">
+            Solved (<span id="countDone">0</span>)
+          </button>
+        </div>
+      </div>
+
+      <!-- Clues Feed List -->
+      <div id="cluesListFeed" class="space-y-3">
+        <!-- Rendered dynamically via JavaScript -->
+      </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- TAB 2: QR SCANNER & TEAM SIGN-IN TAB         -->
+    <!-- ============================================ -->
+    <section id="tabSignIn" class="hidden space-y-4">
+      
+      <!-- Current Team Status Banner -->
+      <div class="glass-deck rounded-2xl p-4 border border-halloween-purple/40 text-center">
+        <div class="flex items-center justify-center gap-2 mb-1">
+          <span id="signInCurrentIcon" class="text-3xl animate-spooky-float">👻</span>
+          <h2 id="signInCurrentTitle" class="font-black text-lg text-white">The Phantoms</h2>
+        </div>
+        <p class="text-xs text-gray-300">
+          Currently signed in and tracking as this squad. Scan another squad badge or QR sign-in pass to switch on this device.
+        </p>
+      </div>
+
+      <!-- QR Camera Scanner Box -->
+      <div class="glass-orange rounded-3xl p-4 border-2 border-halloween-orange shadow-glow-orange space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">📷</span>
+            <div>
+              <h3 class="font-extrabold text-sm text-white">Live Camera QR Scanner</h3>
+              <p class="text-[10px] text-halloween-purpleGlow">Point phone at the team invite QR badge</p>
+            </div>
+          </div>
+          <span id="cameraStatePill" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-800 text-gray-400 border border-zinc-700">
+            Idle
+          </span>
+        </div>
+
+        <!-- Viewfinder Box -->
+        <div class="relative w-full aspect-square bg-black rounded-2xl overflow-hidden border-2 border-halloween-purple/60 flex items-center justify-center shadow-inner">
+          <div id="qrVideoPreview" class="w-full h-full"></div>
+
+          <!-- Spooky Optical Reticle Overlay -->
+          <div id="scannerReticleOverlay" class="absolute inset-0 pointer-events-none flex items-center justify-center">
+            <div class="w-52 h-52 border-2 border-dashed border-halloween-orange/80 rounded-2xl relative shadow-glow-orange flex items-center justify-center">
+              <!-- Corner brackets -->
+              <span class="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-halloween-orange -mt-1 -ml-1"></span>
+              <span class="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-halloween-orange -mt-1 -mr-1"></span>
+              <span class="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-halloween-orange -mb-1 -ml-1"></span>
+              <span class="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-halloween-orange -mb-1 -mr-1"></span>
+              
+              <!-- Laser Scanner Beam -->
+              <div id="scannerBeam" class="hidden absolute left-2 right-2 h-0.5 bg-gradient-to-r from-halloween-blood via-halloween-orange to-halloween-blood shadow-glow-orange animate-scanner-beam"></div>
+              
+              <div id="scannerPlaceholderMsg" class="text-center p-3 text-gray-400 text-xs">
+                <i data-lucide="camera" class="w-8 h-8 text-halloween-orange/60 mx-auto mb-1"></i>
+                <span>Tap "Start Camera" below to activate scanner</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Camera Actions (Min 48px Touch Target) -->
+        <div class="grid grid-cols-2 gap-2">
+          <button id="btnStartQrScanner" onclick="startMobileQrScanner()" class="min-h-[48px] py-2.5 px-3 rounded-xl bg-gradient-to-r from-halloween-orange to-amber-600 text-black font-black text-xs shadow-glow-orange flex items-center justify-center gap-1.5 active:scale-95 transition">
+            <i data-lucide="play" class="w-4 h-4"></i>
+            <span>Start Camera</span>
+          </button>
+          <button id="btnStopQrScanner" onclick="stopMobileQrScanner()" disabled class="min-h-[48px] py-2.5 px-3 rounded-xl bg-halloween-night border border-halloween-purple/50 text-gray-400 font-bold text-xs flex items-center justify-center gap-1.5 disabled:opacity-40 transition">
+            <i data-lucide="square" class="w-4 h-4"></i>
+            <span>Stop Camera</span>
+          </button>
+        </div>
+
+        <!-- Camera Switcher, Flashlight & Native Photo QR Fallback -->
+        <input id="qrFileInput" type="file" accept="image/*" capture="environment" class="hidden" onchange="scanQrFromImageFile(this)">
+        <div class="flex items-center gap-2 pt-1">
+          <button id="btnSwitchCamera" onclick="switchCameraFacing()" disabled class="flex-1 min-h-[40px] rounded-xl bg-halloween-night border border-halloween-purple/40 text-[11px] font-bold text-purple-200 flex items-center justify-center gap-1 disabled:opacity-40">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5 text-halloween-orange"></i>
+            <span>Flip Camera</span>
+          </button>
+          <button id="btnToggleFlashlight" onclick="toggleScannerTorch()" disabled class="flex-1 min-h-[40px] rounded-xl bg-halloween-night border border-halloween-purple/40 text-[11px] font-bold text-purple-200 flex items-center justify-center gap-1 disabled:opacity-40">
+            <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400"></i>
+            <span>Torch Light</span>
+          </button>
+          <button type="button" onclick="document.getElementById('qrFileInput').click()" class="flex-1 min-h-[40px] rounded-xl bg-halloween-purple/30 border border-halloween-orange/60 text-[11px] font-bold text-white flex items-center justify-center gap-1">
+            <i data-lucide="camera" class="w-3.5 h-3.5 text-halloween-orange"></i>
+            <span>Snap QR Photo</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Manual Team Sign-in Fallback -->
+      <div class="glass-deck rounded-2xl p-4 border border-halloween-purple/40 space-y-3">
+        <div class="flex items-center justify-between">
+          <h4 class="font-bold text-xs text-white uppercase tracking-wider flex items-center gap-1.5">
+            <i data-lucide="key" class="w-4 h-4 text-halloween-slime"></i>
+            <span>Manual Sign-in or Code Fallback</span>
+          </h4>
+        </div>
+        <div class="flex items-center gap-2">
+          <input id="manualTeamCodeInput" type="text" placeholder="e.g. t-pumpkin or scan JSON" class="flex-1 bg-halloween-black border border-halloween-purple rounded-xl px-3 py-2.5 text-xs text-white uppercase font-mono focus:outline-none focus:border-halloween-orange">
+          <button onclick="handleManualCodeSignIn()" class="min-h-[44px] px-4 rounded-xl bg-halloween-purple text-white font-extrabold text-xs active:bg-halloween-orange active:text-black transition">
+            Join
+          </button>
+        </div>
+        <p class="text-[10px] text-gray-400">
+          Camera unavailable? Select your squad directly below or paste team JSON/ID.
+        </p>
+      </div>
+
+      <!-- One-Tap Squad Switcher List -->
+      <div class="glass-deck rounded-2xl p-4 border border-halloween-purple/40 space-y-2.5">
+        <h4 class="font-bold text-xs text-white uppercase tracking-wider flex items-center gap-1.5">
+          <i data-lucide="users" class="w-4 h-4 text-halloween-orange"></i>
+          <span>Available Squads (Tap to Sign In)</span>
+        </h4>
+        <div id="signInSquadList" class="space-y-2">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ============================================ -->
+    <!-- TAB 3: LIVE LEADERBOARD TAB                  -->
+    <!-- ============================================ -->
+    <section id="tabLeaderboard" class="hidden space-y-3.5">
+      <div class="glass-deck rounded-2xl p-4 border border-halloween-purple/40 shadow-glow-purple">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">🏆</span>
+            <div>
+              <h2 class="font-creep text-xl text-halloween-purpleGlow tracking-wide leading-none">COVEN STANDINGS</h2>
+              <p class="text-[11px] text-gray-400 mt-0.5">Live ranks updated as squads solve riddles</p>
+            </div>
+          </div>
+          <button onclick="shareScoreSummary()" class="px-2.5 py-1.5 rounded-xl bg-halloween-purple/30 border border-halloween-purple text-xs font-bold text-purple-200 flex items-center gap-1">
+            <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+            <span>Share</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Leaderboard Cards Stack -->
+      <div id="leaderboardStack" class="space-y-2.5">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- TAB 4: ADMIN & DISPATCH DECK TAB             -->
+    <!-- ============================================ -->
+    <section id="tabAdmin" class="hidden space-y-3.5">
+      
+      <!-- Admin Security PIN Gate -->
+      <div id="adminPinGate" class="glass-orange rounded-2xl p-5 border border-halloween-orange/50 text-center space-y-3">
+        <div class="text-3xl animate-bounce">🧙‍♀️🔐</div>
+        <h3 class="font-creep text-2xl text-halloween-orange tracking-wider">ADMIN COVEN SANCTUM</h3>
+        <p class="text-xs text-gray-300">Enter Admin Passcode to generate team sign-in QR passes, manage clues, and observe completion alerts.</p>
+        
+        <div class="max-w-[220px] mx-auto">
+          <input id="adminPinInput" type="password" inputmode="numeric" maxlength="6" placeholder="Enter Admin PIN" class="w-full text-center tracking-widest font-mono text-base bg-halloween-black border-2 border-halloween-purple rounded-xl py-2 px-3 text-white focus:outline-none focus:border-halloween-orange">
+        </div>
+        <button onclick="verifyAdminPin()" class="w-full max-w-[220px] mx-auto min-h-[44px] py-2.5 rounded-xl bg-gradient-to-r from-halloween-orange to-amber-600 text-black font-extrabold text-xs shadow-glow-orange flex items-center justify-center gap-1.5">
+          <i data-lucide="unlock" class="w-4 h-4"></i>
+          <span>Unlock Admin Controls</span>
+        </button>
+      </div>
+
+      <!-- Admin Full Controls Content (Shown after PIN) -->
+      <div id="adminControlsArea" class="hidden space-y-3.5">
+
+        <!-- Team Sign-in QR Code Generator -->
+        <div class="glass-deck rounded-2xl p-4 border border-halloween-purple/40 space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-xs text-white uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="qr-code" class="w-4 h-4 text-halloween-orange"></i>
+              <span>Team QR Sign-In Generator</span>
+            </h4>
+            <span class="text-[10px] text-purple-300">Show to players</span>
+          </div>
+          <p class="text-xs text-gray-300">
+            Select any squad to instantly produce a high-contrast QR sign-in code for players to scan with their phones.
+          </p>
+
+          <div class="flex items-center gap-2">
+            <select id="adminQrTeamSelect" onchange="generateAdminQrCode()" class="flex-1 bg-halloween-black border border-halloween-purple rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-halloween-orange font-bold">
+              <!-- Rendered dynamically -->
+            </select>
+          </div>
+
+          <!-- QR Code Display Box -->
+          <div class="p-4 bg-white rounded-2xl max-w-[220px] mx-auto flex flex-col items-center justify-center shadow-lg">
+            <div id="adminQrCodeContainer"></div>
+            <div id="adminQrCodeLabel" class="text-black font-bold text-xs mt-2 text-center truncate max-w-[190px]">The Phantoms</div>
+          </div>
+
+          <a href="print.html" target="_blank" class="w-full min-h-[44px] py-2 px-3 rounded-xl bg-halloween-night border border-halloween-orange/60 text-halloween-orange font-extrabold text-xs flex items-center justify-center gap-1.5 hover:bg-halloween-orange hover:text-black transition">
+            <i data-lucide="printer" class="w-4 h-4"></i>
+            <span>Open Printable All-QR Badge Sheet</span>
+          </a>
+        </div>
+
+        <!-- Outbound Alert Dispatch Status -->
+        <div class="glass-orange rounded-2xl p-4 border border-halloween-orange/50 shadow-glow-orange space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">🚨</span>
+              <h3 class="font-bold text-sm text-white">Live Alert Dispatch Relay</h3>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-halloween-slime/20 text-halloween-slime border border-halloween-slime/30">
+              Active Daemon
+            </span>
+          </div>
+
+          <p class="text-xs text-gray-300">
+            When any squad marks their final relic, a high-priority siren, notification sound, and simulated webhook fire automatically.
+          </p>
+
+          <div class="flex items-center gap-2">
+            <button onclick="simulateAdminAlertNow()" class="flex-1 min-h-[48px] py-2.5 px-3 rounded-xl bg-gradient-to-r from-halloween-blood to-red-600 text-white font-black text-xs shadow-md flex items-center justify-center gap-1.5">
+              <i data-lucide="bell-ring" class="w-4 h-4 animate-bounce"></i>
+              <span>Test-Fire Completion Alert</span>
+            </button>
+            <button onclick="clearAlertLogs()" class="min-h-[48px] px-3 rounded-xl bg-halloween-night border border-halloween-purple/50 text-xs font-bold text-gray-300 hover:text-white">
+              Clear Logs
+            </button>
+          </div>
+        </div>
+
+        <!-- Outbound JSON Webhook Simulator Box -->
+        <div class="glass-deck rounded-2xl p-3.5 border border-halloween-purple/40 space-y-2">
+          <div class="flex items-center justify-between text-xs font-bold text-halloween-purpleGlow">
+            <span class="flex items-center gap-1">
+              <i data-lucide="code" class="w-3.5 h-3.5 text-halloween-orange"></i>
+              <span>Outbound Alert Webhook Payload</span>
+            </span>
+            <span class="text-[10px] text-gray-400 font-mono">POST /api/hunt-complete</span>
+          </div>
+          <div class="bg-halloween-black rounded-xl p-2.5 border border-halloween-purple/30 font-mono text-[10.5px] text-purple-200 overflow-x-auto max-h-36">
+            <pre id="adminWebhookPayloadPreview" class="whitespace-pre-wrap break-all">// Awaiting first completion event...</pre>
+          </div>
+        </div>
+
+        <!-- Live Incident / Alert Log Feed -->
+        <div class="glass-deck rounded-2xl p-4 border border-halloween-purple/40 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-xs text-white uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="inbox" class="w-4 h-4 text-halloween-orange"></i>
+              <span>Admin Alert Inbox (<span id="adminAlertCount">0</span>)</span>
+            </h4>
+          </div>
+          <div id="adminAlertStreamBox" class="space-y-2 max-h-48 overflow-y-auto">
+            <!-- Dynamic alerts -->
+          </div>
+        </div>
+
+        <!-- Squads Overrides & Points Manager -->
+        <div class="glass-deck rounded-2xl p-4 border border-halloween-purple/40 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-xs text-white uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="users" class="w-4 h-4 text-halloween-slime"></i>
+              <span>Squad Overrides & Bonus Points</span>
+            </h4>
+          </div>
+          <div id="adminSquadActionsList" class="space-y-2">
+            <!-- Dynamic Squad Rows -->
+          </div>
+        </div>
+
+        <!-- Clues Configuration & Reset Actions -->
+        <div class="glass-deck rounded-2xl p-4 border border-halloween-purple/40 space-y-2.5">
+          <h4 class="font-bold text-xs text-white uppercase tracking-wider flex items-center gap-1.5">
+            <i data-lucide="settings" class="w-4 h-4 text-halloween-orange"></i>
+            <span>Hunt Master Tools</span>
+          </h4>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="openAddClueDrawer()" class="min-h-[48px] py-2 px-3 rounded-xl bg-halloween-purple hover:bg-purple-600 text-white font-bold text-xs flex items-center justify-center gap-1.5">
+              <i data-lucide="plus-circle" class="w-4 h-4"></i>
+              <span>Add New Clue</span>
+            </button>
+            <button onclick="exportCSVResults()" class="min-h-[48px] py-2 px-3 rounded-xl bg-halloween-night border border-halloween-purple text-purple-200 font-bold text-xs flex items-center justify-center gap-1.5">
+              <i data-lucide="download" class="w-4 h-4 text-halloween-slime"></i>
+              <span>Export CSV</span>
+            </button>
+          </div>
+          <button onclick="confirmResetHunt()" class="w-full min-h-[48px] py-2 px-3 rounded-xl bg-red-950/80 border border-red-700/60 text-red-300 font-black text-xs flex items-center justify-center gap-1.5">
+            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+            <span>Reset Entire Hunt & Clocks</span>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- STICKY BOTTOM NAVIGATION BAR (Thumb Ergonomics, Safe Area Padding) -->
+  <nav class="fixed bottom-0 left-0 right-0 z-40 glass-deck border-t border-halloween-purple/40 safe-bottom shadow-mobile-bottom">
+    <div class="max-w-md mx-auto grid grid-cols-4 px-1 py-1">
+      
+      <!-- Nav Button 1: Hunt / Clues -->
+      <button id="navBtnHunt" onclick="switchTab('hunt')" class="min-h-[48px] flex flex-col items-center justify-center py-1.5 text-halloween-orange transition relative">
+        <i data-lucide="map" class="w-5 h-5 mb-0.5"></i>
+        <span class="text-[10px] font-extrabold tracking-wide">Hunt</span>
+      </button>
+
+      <!-- Nav Button 2: QR Scanner / Sign In -->
+      <button id="navBtnSignIn" onclick="switchTab('signin')" class="min-h-[48px] flex flex-col items-center justify-center py-1.5 text-gray-400 hover:text-gray-200 transition relative">
+        <i data-lucide="qr-code" class="w-5 h-5 mb-0.5"></i>
+        <span class="text-[10px] font-bold tracking-wide">Scan / Join</span>
+      </button>
+
+      <!-- Nav Button 3: Leaderboard -->
+      <button id="navBtnLeaderboard" onclick="switchTab('leaderboard')" class="min-h-[48px] flex flex-col items-center justify-center py-1.5 text-gray-400 hover:text-gray-200 transition relative">
+        <i data-lucide="trophy" class="w-5 h-5 mb-0.5"></i>
+        <span class="text-[10px] font-bold tracking-wide">Ranks</span>
+      </button>
+
+      <!-- Nav Button 4: Admin Deck with live alert badge -->
+      <button id="navBtnAdmin" onclick="switchTab('admin')" class="min-h-[48px] flex flex-col items-center justify-center py-1.5 text-gray-400 hover:text-gray-200 transition relative">
+        <i data-lucide="shield-alert" class="w-5 h-5 mb-0.5"></i>
+        <span class="text-[10px] font-bold tracking-wide">Admin</span>
+        <!-- Notification pip -->
+        <span id="bottomNavAlertBadge" class="hidden absolute top-1 right-5 w-4 h-4 rounded-full bg-halloween-blood text-white text-[9px] font-black flex items-center justify-center animate-bounce">
+          0
+        </span>
+      </button>
+
+    </div>
+  </nav>
+
+  <!-- CLUE VERIFICATION BOTTOM DRAWER -->
+  <div id="drawerVerification" class="fixed inset-0 z-50 flex flex-col justify-end drawer-hidden" role="dialog" aria-modal="true">
+    <div onclick="closeVerificationDrawer()" class="drawer-backdrop absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
+    <div class="drawer-content relative w-full max-w-md mx-auto glass-orange rounded-t-3xl border-t-2 border-halloween-orange p-5 safe-bottom max-h-[90vh] overflow-y-auto space-y-4">
+      
+      <div class="w-12 h-1 bg-halloween-purple/50 rounded-full mx-auto mb-1"></div>
+
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-2.5">
+          <span id="drawerClueIcon" class="text-3xl">🎃</span>
+          <div>
+            <h3 id="drawerClueTitle" class="font-extrabold text-base text-white">The Whispering Pumpkin</h3>
+            <p id="drawerClueLocation" class="text-xs text-halloween-purpleGlow flex items-center gap-1 font-medium">
+              <i data-lucide="map-pin" class="w-3 h-3 text-halloween-orange"></i>
+              <span>Porch</span>
+            </p>
+          </div>
+        </div>
+        <button onclick="closeVerificationDrawer()" class="w-9 h-9 rounded-full bg-halloween-black/60 flex items-center justify-center text-gray-300 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Riddle Card -->
+      <div class="p-3.5 rounded-2xl bg-halloween-black/90 border border-halloween-purple/40 text-xs text-gray-200 italic leading-relaxed">
+        "<span id="drawerClueRiddle">Riddle goes here...</span>"
+      </div>
+
+      <!-- Secret Code Input -->
+      <div>
+        <label class="text-xs font-bold uppercase text-gray-300 block mb-1.5">Enter Physical Rune / Passcode</label>
+        <div class="relative">
+          <input id="drawerCodeInput" type="text" placeholder="e.g. JACKO" autocapitalize="characters" class="w-full bg-halloween-black border-2 border-halloween-purple rounded-xl px-4 py-3 text-white font-mono text-base uppercase focus:outline-none focus:border-halloween-orange">
+          <button onclick="fillExamplePasscode()" class="absolute right-2.5 top-2.5 px-2 py-1 rounded bg-halloween-card text-[10px] text-halloween-orange font-bold">Use Hint Key</button>
+        </div>
+        <p id="drawerCodeHint" class="text-[11px] text-gray-400 mt-1">Found etched onto the physical prop at the hunt location.</p>
+      </div>
+
+      <!-- Live QR Scan or Camera Selfie Proof -->
+      <div class="grid grid-cols-2 gap-2">
+        <button type="button" onclick="closeVerificationDrawer(); switchTab('signin'); startMobileQrScanner();" class="min-h-[48px] py-2.5 px-3 rounded-xl border-2 border-halloween-orange bg-halloween-orange/15 flex items-center justify-center gap-1.5 text-xs font-extrabold text-halloween-orange active:scale-95 transition">
+          <i data-lucide="qr-code" class="w-4 h-4"></i>
+          <span>Live Scan Clue QR</span>
+        </button>
+        <button type="button" onclick="simulateMobileCameraSnap()" class="min-h-[48px] py-2.5 px-3 rounded-xl border-2 border-dashed border-halloween-purple/50 bg-halloween-card/60 flex items-center justify-center gap-1.5 text-xs text-gray-300 active:border-halloween-orange">
+          <i id="cameraSnapIcon" data-lucide="camera" class="w-4 h-4 text-halloween-orange"></i>
+          <span id="cameraSnapLabel">Selfie Proof</span>
+        </button>
+      </div>
+
+      <div id="drawerErrorMsg" class="hidden text-xs text-halloween-blood font-bold bg-red-950/50 p-2.5 rounded-xl border border-red-800 animate-haptic-shake"></div>
+
+      <!-- Confirm Button -->
+      <button onclick="submitMobileClueVerification()" class="w-full min-h-[48px] py-3 rounded-xl bg-gradient-to-r from-halloween-orange to-amber-600 text-black font-black text-sm shadow-glow-orange flex items-center justify-center gap-1.5 active:scale-95 transition">
+        <i data-lucide="check-circle" class="w-5 h-5"></i>
+        <span>Confirm Relic & Award Points</span>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- ADD CUSTOM CLUE DRAWER (ADMIN) -->
+  <div id="drawerAddClue" class="fixed inset-0 z-50 flex flex-col justify-end drawer-hidden" role="dialog" aria-modal="true">
+    <div onclick="closeAddClueDrawer()" class="drawer-backdrop absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
+    <div class="drawer-content relative w-full max-w-md mx-auto glass-deck rounded-t-3xl border-t-2 border-halloween-orange p-5 safe-bottom max-h-[90vh] overflow-y-auto space-y-3">
+      
+      <div class="w-12 h-1 bg-halloween-purple/50 rounded-full mx-auto mb-1"></div>
+
+      <div class="flex items-center justify-between">
+        <h3 class="font-extrabold text-base text-white flex items-center gap-1.5">
+          <i data-lucide="skull" class="w-4 h-4 text-halloween-orange"></i>
+          <span>Add Custom Clue</span>
+        </h3>
+        <button onclick="closeAddClueDrawer()" class="w-8 h-8 rounded-full bg-halloween-black/60 flex items-center justify-center text-gray-300">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="space-y-2.5 text-xs">
+        <div>
+          <label class="font-bold text-gray-300 block mb-1">Relic / Clue Name</label>
+          <input id="newClueTitle" type="text" placeholder="e.g. The Gargoyle's Eye" class="w-full bg-halloween-black border border-halloween-purple rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-halloween-orange">
+        </div>
+        <div>
+          <label class="font-bold text-gray-300 block mb-1">Location Zone</label>
+          <input id="newClueLocation" type="text" placeholder="e.g. Garden Sundial" class="w-full bg-halloween-black border border-halloween-purple rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-halloween-orange">
+        </div>
+        <div>
+          <label class="font-bold text-gray-300 block mb-1">Spooky Riddle</label>
+          <textarea id="newClueRiddle" rows="2" placeholder="I stare in stone while shadows play..." class="w-full bg-halloween-black border border-halloween-purple rounded-xl px-3 py-2 text-white focus:outline-none focus:border-halloween-orange"></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="font-bold text-gray-300 block mb-1">Passcode</label>
+            <input id="newClueCode" type="text" placeholder="GARGOYLE" class="w-full bg-halloween-black border border-halloween-purple rounded-xl px-3 py-2 text-white uppercase font-mono focus:outline-none focus:border-halloween-orange">
+          </div>
+          <div>
+            <label class="font-bold text-gray-300 block mb-1">Points</label>
+            <input id="newCluePoints" type="number" value="100" class="w-full bg-halloween-black border border-halloween-purple rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-halloween-orange">
+          </div>
+        </div>
+        <div>
+          <label class="font-bold text-gray-300 block mb-1">Hint</label>
+          <input id="newClueHint" type="text" placeholder="Check beneath the stone base." class="w-full bg-halloween-black border border-halloween-purple rounded-xl px-3 py-2 text-white focus:outline-none focus:border-halloween-orange">
+        </div>
+      </div>
+
+      <button onclick="saveCustomClue()" class="w-full min-h-[48px] py-2.5 rounded-xl bg-halloween-orange text-black font-black text-xs shadow-glow-orange mt-2">
+        Save & Add to Hunt
+      </button>
+    </div>
+  </div>
+
+  <!-- FULL-SCREEN CELEBRATION MODAL (FINAL CLUE SOLVED) -->
+  <div id="fullScreenVictoryModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md hidden" role="dialog" aria-modal="true">
+    <div class="w-full max-w-sm glass-orange rounded-3xl p-6 text-center border-2 border-halloween-orange shadow-glow-orange space-y-4">
+      <div class="text-6xl animate-spooky-float">🎃🏆👻</div>
+      <h2 class="font-creep text-3xl text-halloween-orange tracking-widest leading-none">ALL RELICS FOUND!</h2>
+      <p class="text-xs text-gray-200">
+        Glorious triumph! <span id="victorySquadName" class="font-bold text-halloween-purpleGlow text-sm underline">The Phantoms</span> have banished the Halloween curse and finished the hunt!
+      </p>
+
+      <div class="bg-halloween-black/90 rounded-2xl p-3.5 border border-halloween-purple/40 text-left space-y-2 text-xs">
+        <div class="flex justify-between text-gray-300">
+          <span>Finish Duration:</span>
+          <span id="victoryTimeVal" class="font-mono font-bold text-white">00:00:00</span>
+        </div>
+        <div class="flex justify-between text-gray-300">
+          <span>Total Score:</span>
+          <span id="victoryScoreVal" class="font-mono font-bold text-halloween-slime">0 pts</span>
+        </div>
+        <div class="flex justify-between items-center text-halloween-orange font-bold text-[11px] pt-1 border-t border-halloween-purple/30">
+          <span>Organizers Alerted:</span>
+          <span class="flex items-center gap-1">
+            <i data-lucide="check" class="w-3.5 h-3.5"></i> Admin Alert Fired!
+          </span>
+        </div>
+      </div>
+
+      <button onclick="dismissVictoryAndGoRanks()" class="w-full min-h-[48px] py-3 rounded-xl bg-gradient-to-r from-halloween-orange to-amber-600 text-black font-black text-xs shadow-glow-orange">
+        View Live Standings
+      </button>
+    </div>
+  </div>
+
+  <!-- Floating Mobile Toast Notification Box -->
+  <div id="mobileToast" class="fixed top-16 left-4 right-4 z-50 pointer-events-none transition-all duration-300 transform -translate-y-10 opacity-0 max-w-md mx-auto">
+    <div class="p-3.5 rounded-2xl bg-halloween-black/95 border-2 border-halloween-orange shadow-2xl backdrop-blur-md flex items-center gap-3">
+      <span id="toastIcon" class="text-2xl animate-pulse">🦇</span>
+      <div id="toastMessage" class="text-xs font-bold text-white flex-1 leading-snug">Spooky Alert!</div>
+    </div>
+  </div>
+
+  <script>
+    /* Default Hunt Clues */
+    const INITIAL_CLUES = [
+      {
+        id: 'c1',
+        title: 'The Whispering Pumpkin',
+        location: 'Front Porch / Main Gate',
+        icon: '🎃',
+        riddle: 'I have a wicked grin with no teeth to bite. At dusk I burn with glowing firelight. What five-letter word is carved into my hollow crown?',
+        secretCode: 'JACKO',
+        points: 50,
+        hint: 'Examine the underside base of the big carved jack-o\'-lantern.'
+      },
+      {
+        id: 'c2',
+        title: 'The Alchemist\'s Calderon',
+        location: 'Kitchen / Hearth Area',
+        icon: '🧪',
+        riddle: 'Eye of newt and toe of frog; I bubble in smoke amidst the midnight fog. Seek the glass phial dipped in poison-green wax.',
+        secretCode: 'POISON',
+        points: 75,
+        hint: 'Resting on the spice shelf near the apple cider calderon.'
+      },
+      {
+        id: 'c3',
+        title: 'The Captain\'s Epitaph',
+        location: 'Cemetery Lawn / Ivy Bush',
+        icon: '🪦',
+        riddle: 'Here lies an explorer named Captain Drake. He fell asleep and never did awake. What 4-digit year is carved into his tomb?',
+        secretCode: '1692',
+        points: 100,
+        hint: 'Tucked inside the ivy bushes near the ancient oak tree.'
+      },
+      {
+        id: 'c4',
+        title: 'The Velvet Arachnid',
+        location: 'Attic Stairs / Bannister',
+        icon: '🕷️',
+        riddle: 'Eight thin legs and jewel-black eyes; I spin silken nets for midnight flies. Count my fangs to learn my species name.',
+        secretCode: 'ARACHNID',
+        points: 50,
+        hint: 'Tangled in the black spiderweb garland on the stairs.'
+      },
+      {
+        id: 'c5',
+        title: 'The Phantom Looking Glass',
+        location: 'Foyer / Coat Wardrobe',
+        icon: '🪞',
+        riddle: 'Speak my secret backwards or gaze upon your shade. What word is scrawled in phantom vapor before shadows fade?',
+        secretCode: 'SPECTER',
+        points: 125,
+        hint: 'Look behind the antique mirror beside the velvet coats.'
+      },
+      {
+        id: 'c6',
+        title: 'The Iron Skeleton Key',
+        location: 'Library / Study Bookcase',
+        icon: '🗝️',
+        riddle: 'Between Edgar Allan Poe and Mary Shelley\'s dread, I rest where only spirits tread. What bird is embossed on my stem?',
+        secretCode: 'RAVEN',
+        points: 100,
+        hint: 'Inside the hollow black book on shelf number three.'
+      },
+      {
+        id: 'c7',
+        title: 'The Witch\'s Familiar',
+        location: 'Greenhouse / Porch Bench',
+        icon: '🐈‍⬛',
+        riddle: 'Sleek as midnight with eyes of burning gold, I cross your path when dark tales are told. What hour is inscribed on my collar tag?',
+        secretCode: 'MIDNIGHT',
+        points: 75,
+        hint: 'Check the plush black cat sitting upon the porch swing.'
+      },
+      {
+        id: 'c8',
+        title: 'The Blood Moon Talisman',
+        location: 'Patio Fire Ring / Gazebo',
+        icon: '🌕',
+        riddle: 'When the sky bleeds red and bats take flight, touch the crimson stone beneath the harvest light.',
+        secretCode: 'BLOODMOON',
+        points: 150,
+        hint: 'Mounted beside the red lantern in the center of the patio.'
+      }
+    ];
+
+    /* Default Squads */
+    const INITIAL_TEAMS = [
+      {
+        id: 't-phantoms',
+        name: 'The Phantoms',
+        icon: '👻',
+        score: 0,
+        completedClueIds: [],
+        startedAt: Date.now(),
+        finishedAt: null,
+        status: 'hunting',
+        alertSent: false
+      },
+      {
+        id: 't-pumpkin',
+        name: 'Pumpkin Kings',
+        icon: '🎃',
+        score: 0,
+        completedClueIds: [],
+        startedAt: Date.now(),
+        finishedAt: null,
+        status: 'hunting',
+        alertSent: false
+      },
+      {
+        id: 't-witches',
+        name: 'Witching Hour',
+        icon: '🧙‍♀️',
+        score: 0,
+        completedClueIds: [],
+        startedAt: Date.now(),
+        finishedAt: null,
+        status: 'hunting',
+        alertSent: false
+      },
+      {
+        id: 't-shadows',
+        name: 'Shadow Stalkers',
+        icon: '🦇',
+        score: 0,
+        completedClueIds: [],
+        startedAt: Date.now(),
+        finishedAt: null,
+        status: 'hunting',
+        alertSent: false
+      }
+    ];
+
+    /* Storage Keys */
+    const STORAGE_KEY_CLUES = 'spookhunt_qr_clues_v4';
+    const STORAGE_KEY_TEAMS = 'spookhunt_qr_teams_v4';
+    const STORAGE_KEY_ALERTS = 'spookhunt_qr_alerts_v4';
+    const STORAGE_KEY_ACTIVE_TEAM = 'spookhunt_qr_active_team_v4';
+
+    /* State Variables */
+    let clues = [];
+    let teams = [];
+    let alerts = [];
+    let activeTeamId = 't-phantoms';
+    let currentFilter = 'all';
+    let currentVerifyingClue = null;
+    let photoSnapVerified = false;
+    let soundEnabled = true;
+    let adminUnlocked = false;
+    let audioContext = null;
+    let stopwatchTimer = null;
+
+    /* QR Scanner Instance & Camera Controls */
+    let html5QrScannerInstance = null;
+    let isScannerRunning = false;
+    let currentFacingMode = "environment"; // default back camera
+    let currentTorchState = false;
+    let adminQrCodeGeneratorInstance = null;
+
+    /* Initialize Application */
+    function initMobileApp() {
+      try {
+        const storedClues = localStorage.getItem(STORAGE_KEY_CLUES);
+        clues = storedClues ? JSON.parse(storedClues) : INITIAL_CLUES;
+      } catch (e) {
+        clues = INITIAL_CLUES;
+      }
+
+      try {
+        const storedTeams = localStorage.getItem(STORAGE_KEY_TEAMS);
+        teams = storedTeams ? JSON.parse(storedTeams) : INITIAL_TEAMS;
+      } catch (e) {
+        teams = INITIAL_TEAMS;
+      }
+
+      try {
+        const storedAlerts = localStorage.getItem(STORAGE_KEY_ALERTS);
+        alerts = storedAlerts ? JSON.parse(storedAlerts) : [];
+      } catch (e) {
+        alerts = [];
+      }
+
+      const savedTeamId = localStorage.getItem(STORAGE_KEY_ACTIVE_TEAM);
+      if (savedTeamId && teams.some(t => t.id === savedTeamId)) {
+        activeTeamId = savedTeamId;
+      } else {
+        activeTeamId = teams[0].id;
+      }
+
+      saveMobileState(false);
+      renderAllViews();
+      startStopwatch();
+      syncFromServer();
+      setInterval(syncFromServer, 3000);
+
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+    }
+
+    let lastServerUpdatedAt = 0;
+
+    async function syncFromServer() {
+      try {
+        const res = await fetch('/api/state', { cache: 'no-store' });
+        if (!res.ok) return;
+        const remote = await res.json();
+        if (remote.updatedAt && remote.updatedAt > lastServerUpdatedAt) {
+          const prevAlertCount = alerts.length;
+          if (Array.isArray(remote.clues) && remote.clues.length) clues = remote.clues;
+          if (Array.isArray(remote.teams) && remote.teams.length) teams = remote.teams;
+          if (Array.isArray(remote.alerts)) alerts = remote.alerts;
+          lastServerUpdatedAt = remote.updatedAt;
+          saveMobileState(false);
+          renderAllViews();
+          if (alerts.length > prevAlertCount && prevAlertCount > 0) {
+            playSpookyTone('alert');
+            updateWebhookJsonPreview(alerts[0]);
+            showMobileToast(alerts[0].message);
+          }
+        } else if (!remote.updatedAt) {
+          saveMobileState(true);
+        }
+      } catch {}
+    }
+
+    function saveMobileState(pushRemote = true) {
+      localStorage.setItem(STORAGE_KEY_CLUES, JSON.stringify(clues));
+      localStorage.setItem(STORAGE_KEY_TEAMS, JSON.stringify(teams));
+      localStorage.setItem(STORAGE_KEY_ALERTS, JSON.stringify(alerts));
+      localStorage.setItem(STORAGE_KEY_ACTIVE_TEAM, activeTeamId);
+      if (pushRemote) {
+        fetch('/api/state', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clues, teams, alerts })
+        })
+          .then(r => r.json())
+          .then(d => { if (d.updatedAt) lastServerUpdatedAt = d.updatedAt; })
+          .catch(() => {});
+      }
+    }
+
+    /* Web Audio API Tone Synthesizer */
+    function playSpookyTone(type = 'chime') {
+      if (!soundEnabled) return;
+      try {
+        if (!audioContext) {
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioContext.state === 'suspended') {
+          audioContext.resume();
+        }
+
+        const now = audioContext.currentTime;
+
+        if (type === 'chime' || type === 'scan') {
+          const osc1 = audioContext.createOscillator();
+          const osc2 = audioContext.createOscillator();
+          const gain = audioContext.createGain();
+
+          osc1.type = 'triangle';
+          osc2.type = 'sine';
+          osc1.frequency.setValueAtTime(659.25, now); // E5
+          osc2.frequency.setValueAtTime(783.99, now); // G5
+          osc1.frequency.exponentialRampToValueAtTime(1046.50, now + 0.25); // C6
+
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+          osc1.connect(gain);
+          osc2.connect(gain);
+          gain.connect(audioContext.destination);
+
+          osc1.start(now);
+          osc2.start(now);
+          osc1.stop(now + 0.5);
+          osc2.stop(now + 0.5);
+
+        } else if (type === 'victory') {
+          [261.63, 311.13, 392.00, 523.25].forEach((freq, idx) => {
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(freq, now + (idx * 0.12));
+            gain.gain.setValueAtTime(0.12, now + (idx * 0.12));
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            osc.start(now + (idx * 0.12));
+            osc.stop(now + 1.3);
+          });
+
+        } else if (type === 'alert') {
+          for (let i = 0; i < 2; i++) {
+            const start = now + (i * 0.28);
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(440, start);
+            osc.frequency.linearRampToValueAtTime(880, start + 0.2);
+            gain.gain.setValueAtTime(0.22, start);
+            gain.gain.linearRampToValueAtTime(0.01, start + 0.25);
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            osc.start(start);
+            osc.stop(start + 0.26);
+          }
+        }
+      } catch (err) {
+        console.warn('Audio note error:', err);
+      }
+    }
+
+    function toggleSpookyAudio() {
+      soundEnabled = !soundEnabled;
+      const icon = document.getElementById('soundIcon');
+      const btn = document.getElementById('soundQuickBtn');
+      if (soundEnabled) {
+        icon.setAttribute('data-lucide', 'volume-2');
+        btn.classList.remove('opacity-40');
+        showMobileToast('Audio Effects Activated 🎃');
+        playSpookyTone('chime');
+      } else {
+        icon.setAttribute('data-lucide', 'volume-x');
+        btn.classList.add('opacity-40');
+        showMobileToast('Audio Muted 🔇');
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    /* Stopwatch */
+    function formatTime(ms) {
+      if (!ms || ms < 0) return '00:00:00';
+      const sec = Math.floor(ms / 1000);
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const s = sec % 60;
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function startStopwatch() {
+      if (stopwatchTimer) clearInterval(stopwatchTimer);
+      stopwatchTimer = setInterval(() => {
+        const team = getCurrentTeam();
+        const display = document.getElementById('topTimerDisplay');
+        if (!team || !display) return;
+
+        if (team.finishedAt) {
+          display.innerText = formatTime(team.finishedAt - team.startedAt);
+        } else {
+          display.innerText = formatTime(Date.now() - team.startedAt);
+        }
+      }, 1000);
+    }
+
+    function getCurrentTeam() {
+      return teams.find(t => t.id === activeTeamId) || teams[0];
+    }
+
+    /* HTML5-QRCode Scanner Integration */
+    async function startMobileQrScanner() {
+      if (isScannerRunning) return;
+
+      const previewDiv = document.getElementById('qrVideoPreview');
+      const placeholder = document.getElementById('scannerPlaceholderMsg');
+      const beam = document.getElementById('scannerBeam');
+      const pill = document.getElementById('cameraStatePill');
+      const btnStart = document.getElementById('btnStartQrScanner');
+      const btnStop = document.getElementById('btnStopQrScanner');
+      const btnSwitch = document.getElementById('btnSwitchCamera');
+      const btnTorch = document.getElementById('btnToggleFlashlight');
+
+      try {
+        if (!html5QrScannerInstance) {
+          html5QrScannerInstance = new Html5Qrcode("qrVideoPreview");
+        }
+
+        pill.innerText = 'Initializing...';
+        pill.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40';
+
+        const config = {
+          fps: 10,
+          qrbox: { width: 220, height: 220 },
+          aspectRatio: 1.0
+        };
+
+        await html5QrScannerInstance.start(
+          { facingMode: currentFacingMode },
+          config,
+          (decodedText, decodedResult) => {
+            // QR Code Decoded Successfully!
+            onSuccessfulQrScan(decodedText);
+          },
+          (errorMessage) => {
+            // Continuous frame scanning without match (ignore noise)
+          }
+        );
+
+        isScannerRunning = true;
+        placeholder.classList.add('hidden');
+        beam.classList.remove('hidden');
+
+        pill.innerText = 'Scanning Live';
+        pill.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40';
+
+        btnStart.disabled = true;
+        btnStart.classList.add('opacity-40');
+        btnStop.disabled = false;
+        btnStop.classList.remove('opacity-40');
+        btnSwitch.disabled = false;
+        btnTorch.disabled = false;
+
+        playSpookyTone('chime');
+        showMobileToast('Camera Live: Aim at Team QR! 📷');
+
+      } catch (err) {
+        console.error("Camera access failed", err);
+        pill.innerText = 'Camera Blocked';
+        pill.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-300 border border-red-500/40';
+        showMobileToast('Camera permission denied. Use Manual Sign-in below.');
+      }
+    }
+
+    async function stopMobileQrScanner() {
+      if (!isScannerRunning || !html5QrScannerInstance) return;
+
+      try {
+        await html5QrScannerInstance.stop();
+        isScannerRunning = false;
+
+        const placeholder = document.getElementById('scannerPlaceholderMsg');
+        const beam = document.getElementById('scannerBeam');
+        const pill = document.getElementById('cameraStatePill');
+        const btnStart = document.getElementById('btnStartQrScanner');
+        const btnStop = document.getElementById('btnStopQrScanner');
+        const btnSwitch = document.getElementById('btnSwitchCamera');
+        const btnTorch = document.getElementById('btnToggleFlashlight');
+
+        placeholder.classList.remove('hidden');
+        beam.classList.add('hidden');
+
+        pill.innerText = 'Stopped';
+        pill.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-800 text-gray-400 border border-zinc-700';
+
+        btnStart.disabled = false;
+        btnStart.classList.remove('opacity-40');
+        btnStop.disabled = true;
+        btnStop.classList.add('opacity-40');
+        btnSwitch.disabled = true;
+        btnTorch.disabled = true;
+
+      } catch (err) {
+        console.warn("Error stopping camera", err);
+      }
+    }
+
+    async function switchCameraFacing() {
+      if (!isScannerRunning) return;
+      await stopMobileQrScanner();
+      currentFacingMode = (currentFacingMode === "environment") ? "user" : "environment";
+      await startMobileQrScanner();
+      showMobileToast(`Flipped to ${currentFacingMode === 'user' ? 'Front' : 'Back'} Camera`);
+    }
+
+    async function toggleScannerTorch() {
+      if (!isScannerRunning || !html5QrScannerInstance) return;
+      try {
+        currentTorchState = !currentTorchState;
+        await html5QrScannerInstance.applyVideoConstraints({
+          advanced: [{ torch: currentTorchState }]
+        });
+        showMobileToast(currentTorchState ? 'Torch On 🔦' : 'Torch Off');
+      } catch (e) {
+        showMobileToast('Torch light not supported on this lens');
+      }
+    }
+
+    async function scanQrFromImageFile(inputEl) {
+      const file = inputEl?.files?.[0];
+      if (!file) return;
+      try {
+        if (isScannerRunning) await stopMobileQrScanner();
+        if (!html5QrScannerInstance) {
+          html5QrScannerInstance = new Html5Qrcode("qrVideoPreview");
+        }
+        const decodedText = await html5QrScannerInstance.scanFile(file, true);
+        onSuccessfulQrScan(decodedText);
+      } catch (err) {
+        playSpookyTone('alert');
+        showMobileToast('No QR code detected in photo. Try closer/brighter shot.');
+      } finally {
+        inputEl.value = '';
+      }
+    }
+
+    /* Process QR Scan Data (Supports both Squad Sign-In QRs and Clue Verification QRs) */
+    function onSuccessfulQrScan(qrData) {
+      playSpookyTone('scan');
+      if (navigator.vibrate) {
+        navigator.vibrate([100, 50, 100]);
+      }
+
+      const raw = String(qrData || '').trim();
+      let targetTeamId = null;
+      let targetTeamName = null;
+      let targetClueId = null;
+      let targetSecretCode = null;
+
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed.teamId) targetTeamId = parsed.teamId;
+        if (parsed.teamName) targetTeamName = parsed.teamName;
+        if (parsed.clueId) targetClueId = parsed.clueId;
+        if (parsed.secretCode) targetSecretCode = parsed.secretCode;
+      } catch (e) {
+        if (/^CLUE:/i.test(raw)) {
+          targetClueId = raw.replace(/^CLUE:/i, '').trim();
+        } else if (/^SQUAD:/i.test(raw)) {
+          targetTeamId = raw.replace(/^SQUAD:/i, '').trim();
+        } else {
+          targetTeamId = raw;
+          targetSecretCode = raw.toUpperCase();
+        }
+      }
+
+      // 1. Check if QR matches a Clue (by clueId or secretCode)
+      const matchedClue = clues.find(c =>
+        (targetClueId && c.id.toLowerCase() === targetClueId.toLowerCase()) ||
+        (targetSecretCode && c.secretCode.toUpperCase() === targetSecretCode.toUpperCase())
+      );
+
+      if (matchedClue) {
+        const team = getCurrentTeam();
+        if (!team.completedClueIds.includes(matchedClue.id)) {
+          team.completedClueIds.push(matchedClue.id);
+          team.score += matchedClue.points;
+          showMobileToast(`Relic "${matchedClue.title}" Scanned! +${matchedClue.points} pts 🎃`);
+        } else {
+          showMobileToast(`"${matchedClue.title}" already solved by ${team.name}!`);
+        }
+        stopMobileQrScanner();
+        checkFinalHuntCompletion(team);
+        saveMobileState();
+        renderAllViews();
+        setTimeout(() => switchTab('hunt'), 700);
+        return;
+      }
+
+      // 2. Check if QR matches a Squad Sign-In
+      let matchedTeam = teams.find(t =>
+        (targetTeamId && t.id.toLowerCase() === targetTeamId.toLowerCase()) ||
+        t.name.toLowerCase() === (targetTeamName || targetTeamId || '').toLowerCase()
+      );
+
+      if (matchedTeam) {
+        activeTeamId = matchedTeam.id;
+        saveMobileState();
+        stopMobileQrScanner();
+        renderAllViews();
+        showMobileToast(`Signed in as ${matchedTeam.name}! 👻`);
+        setTimeout(() => switchTab('hunt'), 800);
+      } else if (targetTeamName || (targetTeamId && targetTeamId.length > 2)) {
+        const newName = targetTeamName || targetTeamId;
+        const newSquad = {
+          id: 'team-' + Date.now(),
+          name: newName,
+          icon: '🧙‍♀️',
+          score: 0,
+          completedClueIds: [],
+          startedAt: Date.now(),
+          finishedAt: null,
+          status: 'hunting',
+          alertSent: false
+        };
+        teams.push(newSquad);
+        activeTeamId = newSquad.id;
+        saveMobileState();
+        stopMobileQrScanner();
+        renderAllViews();
+        showMobileToast(`New Squad "${newName}" Registered via QR!`);
+        setTimeout(() => switchTab('hunt'), 800);
+      } else {
+        showMobileToast('Unrecognized Halloween QR code format');
+      }
+    }
+
+    function handleManualCodeSignIn() {
+      const code = document.getElementById('manualTeamCodeInput').value.trim();
+      if (!code) return;
+      onSuccessfulQrScan(code);
+      document.getElementById('manualTeamCodeInput').value = '';
+    }
+
+    function switchTab(tab) {
+      const tabHunt = document.getElementById('tabHunt');
+      const tabSignIn = document.getElementById('tabSignIn');
+      const tabLeaderboard = document.getElementById('tabLeaderboard');
+      const tabAdmin = document.getElementById('tabAdmin');
+
+      const btnHunt = document.getElementById('navBtnHunt');
+      const btnSignIn = document.getElementById('navBtnSignIn');
+      const btnLeaderboard = document.getElementById('navBtnLeaderboard');
+      const btnAdmin = document.getElementById('navBtnAdmin');
+
+      // Auto stop camera if leaving sign in tab
+      if (tab !== 'signin' && isScannerRunning) {
+        stopMobileQrScanner();
+      }
+
+      // Hide all tabs
+      [tabHunt, tabSignIn, tabLeaderboard, tabAdmin].forEach(el => el.classList.add('hidden'));
+
+      // Reset nav classes
+      [btnHunt, btnSignIn, btnLeaderboard, btnAdmin].forEach(b => {
+        b.className = 'min-h-[48px] flex flex-col items-center justify-center py-1.5 text-gray-400 hover:text-gray-200 transition relative';
+      });
+
+      if (tab === 'hunt') {
+        tabHunt.classList.remove('hidden');
+        btnHunt.className = 'min-h-[48px] flex flex-col items-center justify-center py-1.5 text-halloween-orange transition relative';
+        renderCluesFeed();
+      } else if (tab === 'signin') {
+        tabSignIn.classList.remove('hidden');
+        btnSignIn.className = 'min-h-[48px] flex flex-col items-center justify-center py-1.5 text-halloween-orange transition relative';
+        renderSignInView();
+      } else if (tab === 'leaderboard') {
+        tabLeaderboard.classList.remove('hidden');
+        btnLeaderboard.className = 'min-h-[48px] flex flex-col items-center justify-center py-1.5 text-halloween-purpleGlow transition relative';
+        renderLeaderboard();
+      } else if (tab === 'admin') {
+        tabAdmin.classList.remove('hidden');
+        btnAdmin.className = 'min-h-[48px] flex flex-col items-center justify-center py-1.5 text-halloween-blood transition relative';
+        renderAdminDeck();
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function renderAllViews() {
+      const team = getCurrentTeam();
+      if (!team) return;
+
+      document.getElementById('topTeamIcon').innerText = team.icon;
+      document.getElementById('topTeamName').innerText = team.name;
+      document.getElementById('topScoreDisplay').innerText = `${team.score} pts`;
+
+      const completed = team.completedClueIds.length;
+      const total = clues.length;
+      const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+      document.getElementById('topMiniProgressBar').style.width = `${percent}%`;
+      document.getElementById('huntMainProgressBar').style.width = `${percent}%`;
+      document.getElementById('huntProgressCountText').innerText = `${completed} / ${total} (${percent}%)`;
+
+      const pill = document.getElementById('huntStatusPill');
+      if (team.finishedAt) {
+        pill.innerHTML = '✓ Conquered';
+        pill.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-black bg-halloween-slime/20 text-halloween-slime border border-halloween-slime/40';
+      } else {
+        pill.innerHTML = '🎃 Hunting';
+        pill.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40';
+      }
+
+      document.getElementById('countAll').innerText = total;
+      document.getElementById('countTodo').innerText = total - completed;
+      document.getElementById('countDone').innerText = completed;
+
+      updateAlertBadges();
+      renderCluesFeed();
+      renderSignInView();
+      renderLeaderboard();
+      renderAdminDeck();
+    }
+
+    function renderSignInView() {
+      const team = getCurrentTeam();
+      document.getElementById('signInCurrentIcon').innerText = team.icon;
+      document.getElementById('signInCurrentTitle').innerText = team.name;
+
+      const squadList = document.getElementById('signInSquadList');
+      if (!squadList) return;
+      squadList.innerHTML = '';
+
+      teams.forEach(t => {
+        const isActive = t.id === activeTeamId;
+        const btn = document.createElement('button');
+        btn.className = `w-full min-h-[48px] p-3 rounded-2xl border text-left flex items-center justify-between transition ${
+          isActive 
+            ? 'bg-halloween-orange/20 border-halloween-orange text-white' 
+            : 'bg-halloween-black/80 border-halloween-purple/40 text-gray-300'
+        }`;
+
+        btn.onclick = () => {
+          activeTeamId = t.id;
+          saveMobileState();
+          renderAllViews();
+          showMobileToast(`Switched squad to ${t.name}!`);
+        };
+
+        btn.innerHTML = `
+          <div class="flex items-center gap-2.5">
+            <span class="text-2xl">${t.icon}</span>
+            <div>
+              <div class="font-extrabold text-xs text-white">${t.name}</div>
+              <div class="text-[10px] text-gray-400 font-mono">${t.completedClueIds.length}/${clues.length} clues &bull; ${t.score} pts</div>
+            </div>
+          </div>
+          ${isActive ? '<span class="text-[10px] px-2 py-0.5 bg-halloween-orange text-black font-black rounded-full">ACTIVE</span>' : ''}
+        `;
+        squadList.appendChild(btn);
+      });
+    }
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      const bAll = document.getElementById('btnFilterAll');
+      const bTodo = document.getElementById('btnFilterTodo');
+      const bDone = document.getElementById('btnFilterDone');
+
+      [bAll, bTodo, bDone].forEach(b => {
+        b.className = 'flex-1 py-1.5 rounded-lg text-xs font-bold bg-halloween-night text-gray-300 border border-halloween-purple/40 hover:text-white transition';
+      });
+
+      if (filter === 'all') {
+        bAll.className = 'flex-1 py-1.5 rounded-lg text-xs font-extrabold bg-halloween-orange text-black transition';
+      } else if (filter === 'todo') {
+        bTodo.className = 'flex-1 py-1.5 rounded-lg text-xs font-extrabold bg-halloween-orange text-black transition';
+      } else if (filter === 'done') {
+        bDone.className = 'flex-1 py-1.5 rounded-lg text-xs font-extrabold bg-halloween-orange text-black transition';
+      }
+
+      renderCluesFeed();
+    }
+
+    function renderCluesFeed() {
+      const feed = document.getElementById('cluesListFeed');
+      const team = getCurrentTeam();
+      if (!feed || !team) return;
+
+      feed.innerHTML = '';
+
+      const filtered = clues.filter(c => {
+        const isDone = team.completedClueIds.includes(c.id);
+        if (currentFilter === 'todo') return !isDone;
+        if (currentFilter === 'done') return isDone;
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        feed.innerHTML = `
+          <div class="glass-deck rounded-2xl p-6 text-center text-xs text-gray-400 space-y-1">
+            <span class="text-3xl block mb-1">🕸️</span>
+            <div class="font-bold text-white">No relics in this category</div>
+            <p>Switch filter tabs above to view other riddles.</p>
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach((clue, index) => {
+        const isDone = team.completedClueIds.includes(clue.id);
+        const card = document.createElement('div');
+        card.className = `glass-deck rounded-2xl p-4 transition-all border ${
+          isDone 
+            ? 'border-halloween-slime/40 bg-halloween-card/60 opacity-90' 
+            : 'border-halloween-purple/40 hover:border-halloween-orange/60 shadow-md'
+        }`;
+
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-2.5">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="text-2xl shrink-0 ${isDone ? 'filter grayscale-0' : 'animate-spooky-float'}">${clue.icon}</span>
+              <div class="min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <span class="font-mono text-[10px] text-halloween-orange font-bold">#${index + 1}</span>
+                  <h3 class="font-extrabold text-sm truncate ${isDone ? 'text-halloween-slime line-through' : 'text-white'}">
+                    ${clue.title}
+                  </h3>
+                </div>
+                <div class="text-[11px] text-halloween-purpleGlow flex items-center gap-1 mt-0.5 truncate">
+                  <i data-lucide="map-pin" class="w-3 h-3 text-halloween-orange shrink-0"></i>
+                  <span class="truncate">${clue.location}</span>
+                </div>
+              </div>
+            </div>
+            
+            <span class="shrink-0 px-2 py-0.5 rounded-full text-[11px] font-mono font-black ${
+              isDone ? 'bg-emerald-950 text-emerald-400 border border-emerald-600' : 'bg-halloween-night text-halloween-orange border border-halloween-orange/40'
+            }">
+              +${clue.points} pts
+            </span>
+          </div>
+
+          <div class="mt-3 p-3 rounded-xl bg-halloween-black/80 border border-halloween-purple/20 text-xs text-gray-300 italic leading-relaxed">
+            "${clue.riddle}"
+          </div>
+
+          <div class="mt-2.5">
+            <details class="text-[11px] text-purple-300/80 group">
+              <summary class="cursor-pointer font-bold flex items-center gap-1 hover:text-halloween-orange select-none py-1">
+                <i data-lucide="help-circle" class="w-3.5 h-3.5 text-halloween-orange"></i>
+                <span>Tap for Ghostly Whisper (Hint)</span>
+              </summary>
+              <div class="mt-1.5 p-2 rounded-lg bg-halloween-card text-gray-200 border border-purple-900/50 font-normal">
+                🕯️ ${clue.hint}
+              </div>
+            </details>
+          </div>
+
+          <div class="mt-3 pt-3 border-t border-halloween-purple/20 flex items-center justify-between">
+            <div class="text-[11px]">
+              ${isDone 
+                ? '<span class="text-halloween-slime font-bold flex items-center gap-1"><i data-lucide="check" class="w-3.5 h-3.5"></i> Solved & Verified</span>' 
+                : '<span class="text-gray-400 font-medium">Physical rune passcode</span>'
+              }
+            </div>
+
+            <div>
+              ${isDone
+                ? `<button onclick="unmarkClueMobile('${clue.id}')" class="min-h-[44px] px-3 text-xs text-gray-400 hover:text-red-400 font-bold transition flex items-center">
+                    Undo
+                   </button>`
+                : `<button onclick="openVerificationDrawer('${clue.id}')" class="min-h-[44px] px-4 py-2 rounded-xl bg-gradient-to-r from-halloween-purple to-purple-800 active:from-halloween-orange active:to-amber-600 text-white font-black text-xs shadow-md flex items-center gap-1.5 transition">
+                    <i data-lucide="key" class="w-3.5 h-3.5 text-halloween-orange"></i>
+                    <span>Verify Relic</span>
+                   </button>`
+              }
+            </div>
+          </div>
+        `;
+
+        feed.appendChild(card);
+      });
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function openVerificationDrawer(clueId) {
+      const clue = clues.find(c => c.id === clueId);
+      if (!clue) return;
+      currentVerifyingClue = clue;
+      photoSnapVerified = false;
+
+      document.getElementById('drawerClueIcon').innerText = clue.icon;
+      document.getElementById('drawerClueTitle').innerText = clue.title;
+      document.getElementById('drawerClueLocation').innerText = clue.location;
+      document.getElementById('drawerClueRiddle').innerText = clue.riddle;
+      document.getElementById('drawerCodeInput').value = '';
+      document.getElementById('drawerErrorMsg').classList.add('hidden');
+      document.getElementById('cameraSnapLabel').innerText = 'Tap to Snap Team Selfie Proof';
+      document.getElementById('cameraSnapIcon').className = 'w-4 h-4 text-halloween-orange';
+
+      const drawer = document.getElementById('drawerVerification');
+      drawer.classList.remove('drawer-hidden');
+    }
+
+    function closeVerificationDrawer() {
+      const drawer = document.getElementById('drawerVerification');
+      drawer.classList.add('drawer-hidden');
+      currentVerifyingClue = null;
+    }
+
+    function fillExamplePasscode() {
+      if (currentVerifyingClue) {
+        document.getElementById('drawerCodeInput').value = currentVerifyingClue.secretCode;
+        playSpookyTone('chime');
+      }
+    }
+
+    function simulateMobileCameraSnap() {
+      photoSnapVerified = true;
+      const label = document.getElementById('cameraSnapLabel');
+      const icon = document.getElementById('cameraSnapIcon');
+      label.innerHTML = '<span class="text-halloween-slime font-extrabold">📸 Selfie Captured & Stamped!</span>';
+      icon.className = 'w-4 h-4 text-halloween-slime';
+      playSpookyTone('chime');
+      showMobileToast('Selfie proof attached! 📸');
+    }
+
+    function submitMobileClueVerification() {
+      if (!currentVerifyingClue) return;
+      const input = document.getElementById('drawerCodeInput').value.trim().toUpperCase();
+      const error = document.getElementById('drawerErrorMsg');
+
+      if (input !== currentVerifyingClue.secretCode.toUpperCase()) {
+        error.innerText = `Invalid passcode for "${currentVerifyingClue.title}". Try Hint Key or re-check the prop.`;
+        error.classList.remove('hidden');
+        playSpookyTone('alert');
+        return;
+      }
+
+      const team = getCurrentTeam();
+      if (!team.completedClueIds.includes(currentVerifyingClue.id)) {
+        team.completedClueIds.push(currentVerifyingClue.id);
+        team.score += currentVerifyingClue.points;
+      }
+
+      playSpookyTone('chime');
+      closeVerificationDrawer();
+      showMobileToast(`Relic Banished! +${currentVerifyingClue.points} pts`);
+
+      checkFinalHuntCompletion(team);
+
+      saveMobileState();
+      renderAllViews();
+    }
+
+    function unmarkClueMobile(clueId) {
+      const team = getCurrentTeam();
+      const clue = clues.find(c => c.id === clueId);
+      if (!team || !clue) return;
+
+      team.completedClueIds = team.completedClueIds.filter(id => id !== clueId);
+      team.score = Math.max(0, team.score - clue.points);
+      team.finishedAt = null;
+      team.status = 'hunting';
+      team.alertSent = false;
+
+      saveMobileState();
+      renderAllViews();
+      showMobileToast(`Re-opened "${clue.title}"`);
+    }
+
+    function checkFinalHuntCompletion(team) {
+      if (team.completedClueIds.length >= clues.length && clues.length > 0) {
+        team.finishedAt = Date.now();
+        team.status = 'completed';
+
+        playSpookyTone('victory');
+        fireHalloweenConfetti();
+
+        document.getElementById('victorySquadName').innerText = team.name;
+        document.getElementById('victoryTimeVal').innerText = formatTime(team.finishedAt - team.startedAt);
+        document.getElementById('victoryScoreVal').innerText = `${team.score} Points`;
+        document.getElementById('fullScreenVictoryModal').classList.remove('hidden');
+
+        if (!team.alertSent) {
+          team.alertSent = true;
+          dispatchAdminCompletionAlert(team);
+        }
+      }
+    }
+
+    function dispatchAdminCompletionAlert(team) {
+      const durationText = formatTime(team.finishedAt - team.startedAt);
+      const newAlert = {
+        id: 'alert-' + Date.now(),
+        teamName: team.name,
+        timestamp: Date.now(),
+        message: `🏁 ${team.name} COMPLETED all ${clues.length} clues in ${durationText} with ${team.score} pts!`,
+        score: team.score,
+        viewed: false
+      };
+
+      alerts.unshift(newAlert);
+      saveMobileState();
+
+      playSpookyTone('alert');
+      updateWebhookJsonPreview(newAlert);
+      fetch('/api/hunt-complete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newAlert) }).catch(() => {});
+      showMobileToast(`🚨 ADMIN DISPATCH: ${team.name} completed the hunt!`);
+
+      updateAlertBadges();
+      renderAdminDeck();
+    }
+
+    function updateAlertBadges() {
+      const unviewed = alerts.filter(a => !a.viewed).length;
+      const navBadge = document.getElementById('bottomNavAlertBadge');
+      if (navBadge) {
+        if (unviewed > 0) {
+          navBadge.innerText = unviewed;
+          navBadge.classList.remove('hidden');
+        } else {
+          navBadge.classList.add('hidden');
+        }
+      }
+    }
+
+    function updateWebhookJsonPreview(alertObj) {
+      const preview = document.getElementById('adminWebhookPayloadPreview');
+      if (!preview) return;
+
+      const payload = {
+        event: "SCAVENGER_HUNT_COMPLETED",
+        destination: "admin-dispatch-relay@coven.local",
+        timestamp_iso: new Date(alertObj.timestamp).toISOString(),
+        team: {
+          name: alertObj.teamName,
+          score: alertObj.score
+        },
+        alert: alertObj.message,
+        status: "DELIVERED_HTTP_200"
+      };
+
+      preview.textContent = JSON.stringify(payload, null, 2);
+    }
+
+    function fireHalloweenConfetti() {
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 70,
+          spread: 80,
+          origin: { y: 0.6 },
+          colors: ['#ff5500', '#9333ea', '#10b981', '#fbbf24', '#f43f5e']
+        });
+      }
+    }
+
+    function dismissVictoryAndGoRanks() {
+      document.getElementById('fullScreenVictoryModal').classList.add('hidden');
+      switchTab('leaderboard');
+    }
+
+    function renderLeaderboard() {
+      const stack = document.getElementById('leaderboardStack');
+      if (!stack) return;
+      stack.innerHTML = '';
+
+      const sorted = [...teams].sort((a, b) => {
+        const aDone = a.completedClueIds.length >= clues.length;
+        const bDone = b.completedClueIds.length >= clues.length;
+        if (aDone && !bDone) return -1;
+        if (!aDone && bDone) return 1;
+        return b.score - a.score;
+      });
+
+      sorted.forEach((team, idx) => {
+        const isDone = team.completedClueIds.length >= clues.length && clues.length > 0;
+        const duration = team.finishedAt ? formatTime(team.finishedAt - team.startedAt) : formatTime(Date.now() - team.startedAt);
+        const card = document.createElement('div');
+        
+        card.className = `glass-deck rounded-2xl p-3.5 border transition-all ${
+          team.id === activeTeamId ? 'border-halloween-orange shadow-glow-orange' : 'border-halloween-purple/30'
+        }`;
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="font-mono text-base font-black ${idx === 0 ? 'text-amber-400' : 'text-gray-400'}">
+                #${idx + 1}
+              </span>
+              <span class="text-2xl">${team.icon}</span>
+              <div>
+                <div class="font-extrabold text-sm text-white flex items-center gap-1.5">
+                  <span>${team.name}</span>
+                  ${team.id === activeTeamId ? '<span class="text-[9px] px-1.5 py-0.2 bg-halloween-orange text-black font-black rounded">YOU</span>' : ''}
+                </div>
+                <div class="text-[11px] text-gray-400 font-mono">Time: ${duration}</div>
+              </div>
+            </div>
+
+            <div class="text-right">
+              <div class="font-mono text-sm font-black text-halloween-slime">${team.score} pts</div>
+              <div class="text-[10px] mt-0.5">
+                ${isDone 
+                  ? '<span class="text-halloween-slime font-extrabold">✓ Finished</span>' 
+                  : `<span class="text-halloween-orange font-bold">${team.completedClueIds.length}/${clues.length} clues</span>`
+                }
+              </div>
+            </div>
+          </div>
+        `;
+        stack.appendChild(card);
+      });
+    }
+
+    function shareScoreSummary() {
+      let text = "🎃 SPOOKHUNT STANDINGS:\n";
+      const sorted = [...teams].sort((a, b) => b.score - a.score);
+      sorted.forEach((t, i) => {
+        text += `#${i+1} ${t.name}: ${t.score} pts (${t.completedClueIds.length}/${clues.length} clues)\n`;
+      });
+
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => {
+          showMobileToast('Scoreboard copied to clipboard! 📋');
+        }).catch(() => {
+          showMobileToast('Leaderboard active! 🏆');
+        });
+      } else {
+        showMobileToast('Leaderboard active! 🏆');
+      }
+    }
+
+    function verifyAdminPin() {
+      const pin = document.getElementById('adminPinInput').value.trim();
+      if (pin === '1881') {
+        adminUnlocked = true;
+        document.getElementById('adminPinGate').classList.add('hidden');
+        document.getElementById('adminControlsArea').classList.remove('hidden');
+        playSpookyTone('chime');
+        showMobileToast('Admin Sanctum Unlocked 🧙‍♀️');
+        renderAdminDeck();
+      } else {
+        playSpookyTone('alert');
+        showMobileToast('Incorrect Admin PIN');
+      }
+    }
+
+    function renderAdminDeck() {
+      if (!adminUnlocked) return;
+
+      alerts.forEach(a => a.viewed = true);
+      updateAlertBadges();
+      document.getElementById('adminAlertCount').innerText = alerts.length;
+
+      // Populate Admin Team & Clue QR Select
+      const qrSelect = document.getElementById('adminQrTeamSelect');
+      if (qrSelect) {
+        const currentSelected = qrSelect.value;
+        qrSelect.innerHTML = '';
+        const teamGroup = document.createElement('optgroup');
+        teamGroup.label = 'Squad Sign-In QRs';
+        teams.forEach(t => {
+          const opt = document.createElement('option');
+          opt.value = `SQUAD:${t.id}`;
+          opt.innerText = `${t.icon} ${t.name} (Sign-In)`;
+          if (opt.value === currentSelected || (!currentSelected && t.id === activeTeamId)) opt.selected = true;
+          teamGroup.appendChild(opt);
+        });
+        qrSelect.appendChild(teamGroup);
+
+        const clueGroup = document.createElement('optgroup');
+        clueGroup.label = 'Physical Clue Relic QRs';
+        clues.forEach((c, idx) => {
+          const opt = document.createElement('option');
+          opt.value = `CLUE:${c.id}`;
+          opt.innerText = `${c.icon} #${idx + 1} ${c.title} (+${c.points} pts)`;
+          if (opt.value === currentSelected) opt.selected = true;
+          clueGroup.appendChild(opt);
+        });
+        qrSelect.appendChild(clueGroup);
+        generateAdminQrCode();
+      }
+
+      // Render Alert Inbox
+      const inbox = document.getElementById('adminAlertStreamBox');
+      if (inbox) {
+        inbox.innerHTML = '';
+        if (alerts.length === 0) {
+          inbox.innerHTML = '<div class="text-xs text-gray-500 py-3 text-center">No alerts logged yet.</div>';
+        } else {
+          alerts.forEach(a => {
+            const row = document.createElement('div');
+            row.className = 'p-2.5 rounded-xl bg-halloween-black/80 border border-halloween-purple/30 text-xs flex items-start gap-2';
+            row.innerHTML = `
+              <span class="text-base shrink-0">🔔</span>
+              <div class="flex-1 min-w-0">
+                <div class="font-bold text-gray-200">${a.message}</div>
+                <div class="text-[10px] text-gray-400 mt-0.5">${new Date(a.timestamp).toLocaleTimeString()}</div>
+              </div>
+            `;
+            inbox.appendChild(row);
+          });
+        }
+      }
+
+      // Render Squad Overrides Rows
+      const squadList = document.getElementById('adminSquadActionsList');
+      if (squadList) {
+        squadList.innerHTML = '';
+        teams.forEach(t => {
+          const row = document.createElement('div');
+          row.className = 'p-2.5 rounded-xl bg-halloween-black/80 border border-halloween-purple/30 flex items-center justify-between text-xs gap-2';
+          row.innerHTML = `
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="text-lg">${t.icon}</span>
+              <div class="truncate">
+                <div class="font-bold text-white truncate">${t.name}</div>
+                <div class="text-[10px] text-gray-400 font-mono">${t.score} pts &bull; ${t.completedClueIds.length}/${clues.length}</div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button onclick="awardSquadBonus('${t.id}', 25)" class="min-h-[36px] px-2 py-1 rounded-lg bg-halloween-night border border-halloween-purple text-[11px] font-bold text-amber-300">
+                +25
+              </button>
+              <button onclick="forceFinishSquad('${t.id}')" class="min-h-[36px] px-2 py-1 rounded-lg bg-emerald-950 border border-emerald-600 text-[11px] font-bold text-emerald-300">
+                Finish
+              </button>
+            </div>
+          `;
+          squadList.appendChild(row);
+        });
+      }
+    }
+
+    /* Admin QR Code Generator using QRCode.js */
+    function generateAdminQrCode() {
+      const select = document.getElementById('adminQrTeamSelect');
+      const container = document.getElementById('adminQrCodeContainer');
+      const label = document.getElementById('adminQrCodeLabel');
+      if (!select || !container) return;
+
+      const val = select.value || `SQUAD:${activeTeamId}`;
+      container.innerHTML = '';
+      let qrPayload = '';
+
+      if (val.startsWith('CLUE:')) {
+        const clueId = val.replace('CLUE:', '');
+        const clue = clues.find(c => c.id === clueId) || clues[0];
+        if (!clue) return;
+        label.innerText = `${clue.icon} ${clue.title} (${clue.secretCode})`;
+        qrPayload = JSON.stringify({
+          clueId: clue.id,
+          secretCode: clue.secretCode,
+          action: "VERIFY_CLUE",
+          hunt: "Halloween2026"
+        });
+      } else {
+        const teamId = val.replace('SQUAD:', '');
+        const team = teams.find(t => t.id === teamId) || teams[0];
+        if (!team) return;
+        label.innerText = `${team.icon} ${team.name}`;
+        qrPayload = JSON.stringify({
+          teamId: team.id,
+          teamName: team.name,
+          action: "SIGN_IN",
+          hunt: "Halloween2026"
+        });
+      }
+
+      try {
+        if (typeof QRCode !== 'undefined') {
+          adminQrCodeGeneratorInstance = new QRCode(container, {
+            text: qrPayload,
+            width: 170,
+            height: 170,
+            colorDark: "#0d0618",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        }
+      } catch (err) {
+        console.error("QR Code rendering error", err);
+      }
+    }
+
+    function simulateAdminAlertNow() {
+      const active = getCurrentTeam();
+      const mock = {
+        id: 'test-' + Date.now(),
+        teamName: active.name,
+        timestamp: Date.now(),
+        message: `🚨 MANUAL TEST ALERT: Dispatch signal triggered for ${active.name}!`,
+        score: active.score,
+        viewed: true
+      };
+      alerts.unshift(mock);
+      saveMobileState();
+      playSpookyTone('alert');
+      showMobileToast('Fired simulated alert! 🚨');
+      updateWebhookJsonPreview(mock);
+      renderAdminDeck();
+    }
+
+    function clearAlertLogs() {
+      alerts = [];
+      saveMobileState();
+      renderAdminDeck();
+      showMobileToast('Alert logs cleared.');
+    }
+
+    function awardSquadBonus(teamId, pts) {
+      const team = teams.find(t => t.id === teamId);
+      if (!team) return;
+      team.score += pts;
+      saveMobileState();
+      playSpookyTone('chime');
+      renderAllViews();
+      showMobileToast(`+${pts} pts given to ${team.name}!`);
+    }
+
+    function forceFinishSquad(teamId) {
+      const team = teams.find(t => t.id === teamId);
+      if (!team) return;
+      team.completedClueIds = clues.map(c => c.id);
+      team.score = clues.reduce((sum, c) => sum + c.points, 0) + 50;
+      team.finishedAt = Date.now();
+      team.status = 'completed';
+      checkFinalHuntCompletion(team);
+      saveMobileState();
+      renderAllViews();
+    }
+
+    function confirmResetHunt() {
+      const confirmReset = window.confirm("Reset all team clocks, riddles, and scores back to starting line?");
+      if (confirmReset) {
+        teams = INITIAL_TEAMS.map(t => ({
+          ...t,
+          score: 0,
+          completedClueIds: [],
+          startedAt: Date.now(),
+          finishedAt: null,
+          status: 'hunting',
+          alertSent: false
+        }));
+        alerts = [];
+        saveMobileState();
+        renderAllViews();
+        showMobileToast('Hunt clocks and scores reset! 🎃');
+      }
+    }
+
+    function exportCSVResults() {
+      let csv = "Rank,Team Name,Score,Completed Clues,Total Clues,Hunt Duration,Status\n";
+      const sorted = [...teams].sort((a, b) => b.score - a.score);
+      sorted.forEach((t, i) => {
+        const dur = t.finishedAt ? formatTime(t.finishedAt - t.startedAt) : formatTime(Date.now() - t.startedAt);
+        csv += `${i + 1},"${t.name}",${t.score},${t.completedClueIds.length},${clues.length},"${dur}",${t.status}\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `hunt_results_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showMobileToast('CSV Exported! 📥');
+    }
+
+    function openAddClueDrawer() {
+      document.getElementById('newClueTitle').value = '';
+      document.getElementById('newClueLocation').value = '';
+      document.getElementById('newClueRiddle').value = '';
+      document.getElementById('newClueCode').value = '';
+      document.getElementById('newCluePoints').value = '100';
+      document.getElementById('newClueHint').value = '';
+      document.getElementById('drawerAddClue').classList.remove('drawer-hidden');
+    }
+
+    function closeAddClueDrawer() {
+      document.getElementById('drawerAddClue').classList.add('drawer-hidden');
+    }
+
+    function saveCustomClue() {
+      const title = document.getElementById('newClueTitle').value.trim();
+      const location = document.getElementById('newClueLocation').value.trim();
+      const riddle = document.getElementById('newClueRiddle').value.trim();
+      const code = document.getElementById('newClueCode').value.trim();
+      const points = parseInt(document.getElementById('newCluePoints').value, 10) || 50;
+      const hint = document.getElementById('newClueHint').value.trim() || 'Look closely nearby.';
+
+      if (!title || !location || !riddle || !code) {
+        showMobileToast('Please fill all fields!');
+        return;
+      }
+
+      const newClue = {
+        id: 'clue-' + Date.now(),
+        title,
+        location,
+        icon: '💀',
+        riddle,
+        secretCode: code.toUpperCase(),
+        points,
+        hint
+      };
+
+      clues.push(newClue);
+      saveMobileState();
+      closeAddClueDrawer();
+      renderAllViews();
+      showMobileToast(`New relic "${title}" added!`);
+    }
+
+    let toastTimeout = null;
+    function showMobileToast(msg) {
+      const toast = document.getElementById('mobileToast');
+      const text = document.getElementById('toastMessage');
+      if (!toast || !text) return;
+
+      text.innerText = msg;
+      toast.classList.remove('opacity-0', '-translate-y-10');
+      toast.classList.add('opacity-100', 'translate-y-0');
+
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', '-translate-y-10');
+      }, 2600);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initMobileApp();
+    });
+  </script>
+</body>
+</html>

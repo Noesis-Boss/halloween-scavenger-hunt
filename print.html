@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SpookHunt Printable QR Badges (Squads & Clues)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    @media print {
+      .no-print { display: none !important; }
+      body { background: #fff !important; color: #000 !important; }
+      .badge-card { break-inside: avoid; page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body class="bg-zinc-100 text-zinc-900 p-6 font-sans">
+  <div class="max-w-5xl mx-auto space-y-6">
+    <header class="no-print bg-zinc-900 text-white p-4 rounded-2xl flex items-center justify-between shadow">
+      <div>
+        <h1 class="text-lg font-black text-orange-400">🎃 SpookHunt Printable QR Badge Sheet</h1>
+        <p class="text-xs text-zinc-300">Cut along dashed lines. Place Clue QRs at locations and hand Squad QRs to team captains.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="./" class="px-3 py-2 rounded-xl bg-zinc-800 text-xs font-bold text-zinc-200 hover:bg-zinc-700">← Back to App</a>
+        <button onclick="window.print()" class="px-4 py-2 rounded-xl bg-orange-500 text-black font-black text-xs hover:bg-orange-400">🖨️ Print Sheet</button>
+      </div>
+    </header>
+
+    <section>
+      <h2 class="text-sm font-black uppercase tracking-wider text-zinc-700 mb-3 border-b border-zinc-300 pb-1">1. Squad Sign-In Passes (4 Teams)</h2>
+      <div id="squadGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-4"></div>
+    </section>
+
+    <section>
+      <h2 class="text-sm font-black uppercase tracking-wider text-zinc-700 mb-3 border-b border-zinc-300 pb-1">2. Physical Clue Relic Stickers</h2>
+      <div id="clueGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-4"></div>
+    </section>
+  </div>
+
+  <script>
+    const DEFAULT_TEAMS = [
+      { id: 't-phantoms', name: 'The Phantoms', icon: '👻' },
+      { id: 't-pumpkin', name: 'Pumpkin Kings', icon: '🎃' },
+      { id: 't-witches', name: 'Witching Hour', icon: '🧙‍♀️' },
+      { id: 't-shadows', name: 'Shadow Stalkers', icon: '🦇' }
+    ];
+
+    const DEFAULT_CLUES = [
+      { id: 'c1', title: 'The Whispering Pumpkin', location: 'Front Porch / Main Gate', icon: '🎃', secretCode: 'JACKO', points: 50 },
+      { id: 'c2', title: "The Alchemist's Calderon", location: 'Kitchen / Hearth Area', icon: '🧪', secretCode: 'POISON', points: 75 },
+      { id: 'c3', title: "The Captain's Epitaph", location: 'Cemetery Lawn / Ivy Bush', icon: '🪦', secretCode: '1692', points: 100 },
+      { id: 'c4', title: 'The Velvet Arachnid', location: 'Attic Stairs / Bannister', icon: '🕷️', secretCode: 'ARACHNID', points: 50 },
+      { id: 'c5', title: 'The Phantom Looking Glass', location: 'Foyer / Coat Wardrobe', icon: '🪞', secretCode: 'SPECTER', points: 125 },
+      { id: 'c6', title: 'The Iron Skeleton Key', location: 'Library / Study Bookcase', icon: '🗝️', secretCode: 'RAVEN', points: 100 },
+      { id: 'c7', title: "The Witch's Familiar", location: 'Greenhouse / Porch Bench', icon: '🐈‍⬛', secretCode: 'MIDNIGHT', points: 75 },
+      { id: 'c8', title: 'The Blood Moon Talisman', location: 'Patio Fire Ring / Gazebo', icon: '🌕', secretCode: 'BLOODMOON', points: 150 }
+    ];
+
+    function makeQr(el, payload) {
+      if (typeof QRCode !== 'undefined') {
+        new QRCode(el, {
+          text: JSON.stringify(payload),
+          width: 136,
+          height: 136,
+          colorDark: '#000000',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      } else {
+        el.innerHTML = `<div class="w-[136px] h-[136px] border-2 border-black flex items-center justify-center font-mono text-xs p-2 text-center">${payload.teamId || payload.secretCode}</div>`;
+      }
+    }
+
+    async function initSheet() {
+      let teams = DEFAULT_TEAMS;
+      let clues = DEFAULT_CLUES;
+      try {
+        const res = await fetch('/api/state', { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.teams) && data.teams.length) teams = data.teams;
+          if (Array.isArray(data.clues) && data.clues.length) clues = data.clues;
+        }
+      } catch {}
+
+      const squadGrid = document.getElementById('squadGrid');
+      teams.forEach(t => {
+        const card = document.createElement('div');
+        card.className = 'badge-card bg-white border-2 border-dashed border-zinc-800 rounded-2xl p-3 flex flex-col items-center text-center space-y-2';
+        card.innerHTML = `
+          <div class="text-xs font-black uppercase tracking-wider bg-zinc-900 text-white px-2 py-0.5 rounded-full">Squad Sign-In</div>
+          <div class="text-base font-extrabold">${t.icon} ${t.name}</div>
+          <div class="qr-box p-1 bg-white"></div>
+          <div class="text-xs font-mono text-zinc-600">Code: <span class="font-bold text-black">${t.id}</span></div>
+        `;
+        squadGrid.appendChild(card);
+        makeQr(card.querySelector('.qr-box'), { teamId: t.id, teamName: t.name, action: 'SIGN_IN', hunt: 'Halloween2026' });
+      });
+
+      const clueGrid = document.getElementById('clueGrid');
+      clues.forEach((c, idx) => {
+        const card = document.createElement('div');
+        card.className = 'badge-card bg-white border-2 border-dashed border-orange-600 rounded-2xl p-3 flex flex-col items-center text-center space-y-1.5';
+        card.innerHTML = `
+          <div class="text-xs font-black uppercase tracking-wider bg-orange-500 text-black px-2 py-0.5 rounded-full">Relic #${idx + 1} (+${c.points} pts)</div>
+          <div class="text-sm font-extrabold leading-tight">${c.icon} ${c.title}</div>
+          <div class="text-xs text-zinc-500 truncate max-w-full">📍 ${c.location}</div>
+          <div class="qr-box p-1 bg-white"></div>
+          <div class="text-xs font-mono text-zinc-700">Passcode: <span class="font-black text-black">${c.secretCode}</span></div>
+        `;
+        clueGrid.appendChild(card);
+        makeQr(card.querySelector('.qr-box'), { clueId: c.id, secretCode: c.secretCode, action: 'VERIFY_CLUE', hunt: 'Halloween2026' });
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', initSheet);
+  </script>
+</body>
+</html>
