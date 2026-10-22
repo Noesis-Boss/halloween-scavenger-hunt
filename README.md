@@ -15,3 +15,8 @@ Open `http://localhost:3000` (set `PORT=3001` or `WEBHOOK_URL=https://...` if ne
 ```sh
 npm test
 ```
+
+## Roadmap
+
+- **Theme Selection:** Support switching themes beyond Halloween (Birthday party, Christmas, Easter, 4th of July, pirate/treasure hunt, etc.) with custom color palettes, festive icons, and audio chimes.
+- **Pre-Packaged Clue Packs:** Themed starter riddles and preset squads tailored to each celebration.
