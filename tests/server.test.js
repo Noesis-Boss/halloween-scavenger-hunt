@@ -17,6 +17,7 @@ test('serves index.html, persists /api/state, and validates /api/hunt-complete',
     assert.equal(home.status, 200);
     const html = await home.text();
     assert.ok(html.includes('SpookHunt Mobile'));
+    assert.match(html, /\.drawer-hidden\s*\{[^}]*pointer-events:\s*none/);
 
     const printPage = await fetch(`${base}/print.html`);
     assert.equal(printPage.status, 200);
