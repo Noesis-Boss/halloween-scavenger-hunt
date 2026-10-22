@@ -511,11 +511,16 @@
 
         <!-- Clues Configuration & Reset Actions -->
         <div class="glass-deck rounded-2xl p-4 border border-halloween-purple/40 space-y-2.5">
-          <h4 class="font-bold text-xs text-white uppercase tracking-wider flex items-center gap-1.5">
-            <i data-lucide="settings" class="w-4 h-4 text-halloween-orange"></i>
-            <span>Hunt Master Tools</span>
-          </h4>
-          <div class="grid grid-cols-2 gap-2">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-xs text-white uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="settings" class="w-4 h-4 text-halloween-orange"></i>
+              <span>Relics / Clues Manager & Master Tools</span>
+            </h4>
+          </div>
+          <div id="adminCluesList" class="space-y-2 max-h-64 overflow-y-auto">
+            <!-- Dynamic Admin Clue Rows (Edit / Delete) -->
+          </div>
+          <div class="grid grid-cols-2 gap-2 pt-1">
             <button onclick="openAddClueDrawer()" class="min-h-[48px] py-2 px-3 rounded-xl bg-halloween-purple hover:bg-purple-600 text-white font-bold text-xs flex items-center justify-center gap-1.5">
               <i data-lucide="plus-circle" class="w-4 h-4"></i>
               <span>Add New Clue</span>
@@ -642,7 +647,7 @@
       <div class="flex items-center justify-between">
         <h3 class="font-extrabold text-base text-white flex items-center gap-1.5">
           <i data-lucide="skull" class="w-4 h-4 text-halloween-orange"></i>
-          <span>Add Custom Clue</span>
+          <span id="drawerClueFormTitle">Add Custom Clue</span>
         </h3>
         <button onclick="closeAddClueDrawer()" class="w-8 h-8 rounded-full bg-halloween-black/60 flex items-center justify-center text-gray-300">
           <i data-lucide="x" class="w-4 h-4"></i>
@@ -650,9 +655,15 @@
       </div>
 
       <div class="space-y-2.5 text-xs">
-        <div>
-          <label class="font-bold text-gray-300 block mb-1">Relic / Clue Name</label>
-          <input id="newClueTitle" type="text" placeholder="e.g. The Gargoyle's Eye" class="w-full bg-halloween-black border border-halloween-purple rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-halloween-orange">
+        <div class="grid grid-cols-4 gap-2">
+          <div>
+            <label class="font-bold text-gray-300 block mb-1">Icon</label>
+            <input id="newClueIcon" type="text" value="💀" class="w-full bg-halloween-black border border-halloween-purple rounded-xl px-3 py-2.5 text-center text-base text-white focus:outline-none focus:border-halloween-orange">
+          </div>
+          <div class="col-span-3">
+            <label class="font-bold text-gray-300 block mb-1">Relic / Clue Name</label>
+            <input id="newClueTitle" type="text" placeholder="e.g. The Gargoyle's Eye" class="w-full bg-halloween-black border border-halloween-purple rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-halloween-orange">
+          </div>
         </div>
         <div>
           <label class="font-bold text-gray-300 block mb-1">Location Zone</label>
@@ -678,7 +689,7 @@
         </div>
       </div>
 
-      <button onclick="saveCustomClue()" class="w-full min-h-[48px] py-2.5 rounded-xl bg-halloween-orange text-black font-black text-xs shadow-glow-orange mt-2">
+      <button id="drawerClueSubmitBtn" onclick="saveCustomClue()" class="w-full min-h-[48px] py-2.5 rounded-xl bg-halloween-orange text-black font-black text-xs shadow-glow-orange mt-2">
         Save & Add to Hunt
       </button>
     </div>
@@ -1961,6 +1972,34 @@
           squadList.appendChild(row);
         });
       }
+
+      // Render Admin Relics / Clues Manager Rows
+      const adminCluesList = document.getElementById('adminCluesList');
+      if (adminCluesList) {
+        adminCluesList.innerHTML = '';
+        clues.forEach((c, idx) => {
+          const row = document.createElement('div');
+          row.className = 'p-2.5 rounded-xl bg-halloween-black/80 border border-halloween-purple/30 flex items-center justify-between text-xs gap-2';
+          row.innerHTML = `
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="text-lg shrink-0">${c.icon}</span>
+              <div class="truncate">
+                <div class="font-bold text-white truncate">#${idx + 1} ${c.title}</div>
+                <div class="text-[10px] text-gray-400 font-mono truncate">${c.secretCode} &bull; ${c.points} pts &bull; ${c.location}</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button onclick="openAddClueDrawer('${c.id}')" class="min-h-[36px] px-2.5 py-1 rounded-lg bg-halloween-night border border-halloween-orange/60 text-[11px] font-bold text-halloween-orange">
+                Edit
+              </button>
+              <button onclick="deleteAdminClue('${c.id}')" class="min-h-[36px] px-2 py-1 rounded-lg bg-red-950/80 border border-red-700/60 text-[11px] font-bold text-red-300">
+                Del
+              </button>
+            </div>
+          `;
+          adminCluesList.appendChild(row);
+        });
+      }
     }
 
     /* Admin QR Code Generator using QRCode.js */
@@ -2104,21 +2143,46 @@
       showMobileToast('CSV Exported! 📥');
     }
 
-    function openAddClueDrawer() {
-      document.getElementById('newClueTitle').value = '';
-      document.getElementById('newClueLocation').value = '';
-      document.getElementById('newClueRiddle').value = '';
-      document.getElementById('newClueCode').value = '';
-      document.getElementById('newCluePoints').value = '100';
-      document.getElementById('newClueHint').value = '';
+    let editingClueId = null;
+
+    function openAddClueDrawer(clueId = null) {
+      const existing = clueId ? clues.find(c => c.id === clueId) : null;
+      editingClueId = existing ? existing.id : null;
+
+      document.getElementById('drawerClueFormTitle').innerText = existing ? 'Edit Relic / Clue' : 'Add Custom Clue';
+      document.getElementById('drawerClueSubmitBtn').innerText = existing ? 'Save Clue Changes' : 'Save & Add to Hunt';
+      document.getElementById('newClueIcon').value = existing ? existing.icon : '💀';
+      document.getElementById('newClueTitle').value = existing ? existing.title : '';
+      document.getElementById('newClueLocation').value = existing ? existing.location : '';
+      document.getElementById('newClueRiddle').value = existing ? existing.riddle : '';
+      document.getElementById('newClueCode').value = existing ? existing.secretCode : '';
+      document.getElementById('newCluePoints').value = existing ? String(existing.points) : '100';
+      document.getElementById('newClueHint').value = existing ? existing.hint : '';
       document.getElementById('drawerAddClue').classList.remove('drawer-hidden');
     }
 
     function closeAddClueDrawer() {
+      editingClueId = null;
       document.getElementById('drawerAddClue').classList.add('drawer-hidden');
     }
 
+    function deleteAdminClue(clueId) {
+      const target = clues.find(c => c.id === clueId);
+      if (!target) return;
+      clues = clues.filter(c => c.id !== clueId);
+      teams.forEach(t => {
+        if (t.completedClueIds.includes(clueId)) {
+          t.completedClueIds = t.completedClueIds.filter(id => id !== clueId);
+          t.score = Math.max(0, t.score - target.points);
+        }
+      });
+      saveMobileState();
+      renderAllViews();
+      showMobileToast(`Deleted "${target.title}"`);
+    }
+
     function saveCustomClue() {
+      const icon = document.getElementById('newClueIcon').value.trim() || '💀';
       const title = document.getElementById('newClueTitle').value.trim();
       const location = document.getElementById('newClueLocation').value.trim();
       const riddle = document.getElementById('newClueRiddle').value.trim();
@@ -2131,11 +2195,40 @@
         return;
       }
 
+      if (editingClueId) {
+        const idx = clues.findIndex(c => c.id === editingClueId);
+        if (idx !== -1) {
+          const oldPts = clues[idx].points;
+          clues[idx] = {
+            ...clues[idx],
+            icon,
+            title,
+            location,
+            riddle,
+            secretCode: code.toUpperCase(),
+            points,
+            hint
+          };
+          if (oldPts !== points) {
+            teams.forEach(t => {
+              if (t.completedClueIds.includes(editingClueId)) {
+                t.score = Math.max(0, t.score - oldPts + points);
+              }
+            });
+          }
+        }
+        saveMobileState();
+        closeAddClueDrawer();
+        renderAllViews();
+        showMobileToast(`Updated "${title}"!`);
+        return;
+      }
+
       const newClue = {
         id: 'clue-' + Date.now(),
         title,
         location,
-        icon: '💀',
+        icon,
         riddle,
         secretCode: code.toUpperCase(),
         points,
