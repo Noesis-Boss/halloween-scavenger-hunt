@@ -127,10 +127,11 @@
 
       const squadGrid = document.getElementById('squadGrid');
       teams.forEach(t => {
+        const isSolo = Boolean(t.isSolo);
         const card = document.createElement('div');
         card.className = 'badge-card bg-white border-2 border-dashed border-zinc-800 rounded-2xl p-3 flex flex-col items-center text-center space-y-2';
         card.innerHTML = `
-          <div class="text-xs font-black uppercase tracking-wider bg-zinc-900 text-white px-2 py-0.5 rounded-full">Squad Sign-In</div>
+          <div class="text-xs font-black uppercase tracking-wider ${isSolo ? 'bg-amber-600' : 'bg-zinc-900'} text-white px-2 py-0.5 rounded-full">${isSolo ? 'Solo Hunter Pass' : 'Squad Sign-In'}</div>
           <div class="text-base font-extrabold">${t.icon} ${t.name}</div>
           <div class="qr-box p-1 bg-white"></div>
           <div class="text-xs font-mono text-zinc-600">Code: <span class="font-bold text-black">${t.id}</span></div>

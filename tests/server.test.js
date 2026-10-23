@@ -29,13 +29,15 @@ test('serves index.html, persists /api/state, and validates /api/hunt-complete',
       body: JSON.stringify({
         clues: [{ id: 'c1', title: 'Pumpkin', points: 50 }],
         teams: [{ id: 't1', name: 'The Phantoms', score: 50, completedClueIds: ['c1'] }],
-        alerts: []
+        alerts: [],
+        teamsEnabled: false
       })
     });
     assert.equal(stateSave.status, 200);
 
     const stateGet = await (await fetch(`${base}/api/state`)).json();
     assert.equal(stateGet.teams[0].name, 'The Phantoms');
+    assert.equal(stateGet.teamsEnabled, false);
     assert.ok(stateGet.updatedAt > 0);
 
     const bad = await fetch(`${base}/api/hunt-complete`, {
@@ -57,6 +59,28 @@ test('serves index.html, persists /api/state, and validates /api/hunt-complete',
 
     const list = await (await fetch(`${base}/api/alerts`)).json();
     assert.equal(list.alerts.length, 1);
+
+    // Verify solo participant support and re-enabling teams
+    const soloSave = await fetch(`${base}/api/state`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clues: [{ id: 'c1', title: 'Pumpkin', points: 50 }],
+        teams: [
+          { id: 'solo-1', name: 'Dracula', score: 100, completedClueIds: ['c1'], isSolo: true },
+          { id: 't1', name: 'The Phantoms', score: 50, completedClueIds: ['c1'], isSolo: false }
+        ],
+        alerts: [],
+        teamsEnabled: true
+      })
+    });
+    assert.equal(soloSave.status, 200);
+
+    const soloGet = await (await fetch(`${base}/api/state`)).json();
+    assert.equal(soloGet.teamsEnabled, true);
+    assert.equal(soloGet.teams.length, 2);
+    assert.equal(soloGet.teams[0].isSolo, true);
+    assert.equal(soloGet.teams[0].name, 'Dracula');
   } finally {
     await new Promise(r => server.close(r));
     await rm(tmpState, { force: true });

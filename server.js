@@ -28,12 +28,13 @@ function readJson(req) {
 }
 
 export function createRequestHandler(stateFile = path.join(root, 'data', 'state.json')) {
-  let state = { clues: null, teams: null, alerts: [], updatedAt: 0 };
+  let state = { clues: null, teams: null, alerts: [], teamsEnabled: true, updatedAt: 0 };
 
   async function loadState() {
     if (existsSync(stateFile)) {
       try {
         state = JSON.parse(await readFile(stateFile, 'utf8'));
+        if (typeof state.teamsEnabled !== 'boolean') state.teamsEnabled = true;
       } catch {}
     }
   }
@@ -65,6 +66,9 @@ export function createRequestHandler(stateFile = path.join(root, 'data', 'state.
         state.clues = data.clues;
         state.teams = data.teams;
         state.alerts = data.alerts.slice(0, 100);
+        if (typeof data.teamsEnabled === 'boolean') {
+          state.teamsEnabled = data.teamsEnabled;
+        }
         await persistState();
         res.writeHead(200, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify({ ok: true, updatedAt: state.updatedAt }));

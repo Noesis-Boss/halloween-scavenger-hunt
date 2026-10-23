@@ -154,12 +154,12 @@
   <!-- STICKY TOP BAR: Optimized for Phone Thumb Navigation -->
   <header class="sticky top-0 z-40 glass-deck border-b border-halloween-purple/30 safe-top shadow-lg">
     <div class="px-3.5 py-2.5 max-w-md mx-auto w-full flex items-center justify-between gap-2">
-      <!-- Active Squad Pill -->
+      <!-- Active Squad or Solo Hunter Pill -->
       <button onclick="switchTab('signin')" class="flex items-center gap-2 bg-halloween-night border border-halloween-purple/50 rounded-full pl-2 pr-3 py-1 text-left min-w-0 shadow-inner">
         <span id="topTeamIcon" class="text-xl shrink-0 animate-spooky-float">👻</span>
         <div class="min-w-0">
           <div class="text-[9.5px] text-halloween-purpleGlow font-bold uppercase tracking-wider flex items-center gap-1">
-            <span>Squad</span>
+            <span id="topRoleText">Squad</span>
             <i data-lucide="qr-code" class="w-3 h-3 text-halloween-orange"></i>
           </div>
           <div id="topTeamName" class="text-xs font-black text-white truncate max-w-[95px] xs:max-w-[125px]">The Phantoms</div>
@@ -252,7 +252,7 @@
           <span id="signInCurrentIcon" class="text-3xl animate-spooky-float">👻</span>
           <h2 id="signInCurrentTitle" class="font-black text-lg text-white">The Phantoms</h2>
         </div>
-        <p class="text-xs text-gray-300">
+        <p id="signInCurrentDesc" class="text-xs text-gray-300">
           Currently signed in and tracking as this squad. Scan another squad badge or QR sign-in pass to switch on this device.
         </p>
       </div>
@@ -345,8 +345,45 @@
         </p>
       </div>
 
-      <!-- One-Tap Squad Switcher List -->
-      <div class="glass-deck rounded-2xl p-4 border border-halloween-purple/40 space-y-2.5">
+      <!-- Play Solo (Individual Hunter) Registration / Switcher -->
+      <div id="soloPlayerSection" class="glass-deck rounded-2xl p-4 border border-halloween-purple/40 space-y-3">
+        <div class="flex items-center justify-between">
+          <h4 class="font-bold text-xs text-white uppercase tracking-wider flex items-center gap-1.5">
+            <span class="text-base">👤</span>
+            <span id="soloSectionHeading">Play Solo (Individual Hunter)</span>
+          </h4>
+          <span id="soloSectionBadge" class="text-[10px] px-2 py-0.5 rounded-full font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">
+            No Squad Needed
+          </span>
+        </div>
+        <p class="text-xs text-gray-300" id="soloSectionSubtitle">
+          Don't have a team or prefer to hunt solo? Enter your name below to compete on the leaderboard independently.
+        </p>
+        <div class="flex items-center gap-2">
+          <select id="soloPlayerIconSelect" class="bg-halloween-black border border-halloween-purple rounded-xl px-2 py-2.5 text-base text-white focus:outline-none focus:border-halloween-orange shrink-0">
+            <option value="🕵️">🕵️ Detective</option>
+            <option value="🧙">🧙 Witch</option>
+            <option value="🐺">🐺 Werewolf</option>
+            <option value="🦇">🦇 Vampire</option>
+            <option value="👤">👤 Shadow</option>
+            <option value="🐱">🐱 Black Cat</option>
+            <option value="🎃">🎃 Pumpkin</option>
+          </select>
+          <input id="soloPlayerNameInput" type="text" placeholder="Enter solo player name..." class="flex-1 bg-halloween-black border border-halloween-purple rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-halloween-orange">
+          <button onclick="joinSoloPlayer()" class="min-h-[44px] px-3.5 rounded-xl bg-gradient-to-r from-halloween-orange to-amber-600 text-black font-extrabold text-xs shadow-glow-orange shrink-0">
+            Play Solo
+          </button>
+        </div>
+        <div id="soloHuntersListBlock" class="space-y-1.5 pt-1">
+          <div class="text-[10.5px] font-bold text-gray-400">Registered Solo Hunters (Tap to Switch):</div>
+          <div id="signInSoloList" class="space-y-1.5">
+            <!-- Dynamic Solo Players -->
+          </div>
+        </div>
+      </div>
+
+      <!-- One-Tap Squad Switcher List (Hidden when teams disabled) -->
+      <div id="squadsContainer" class="glass-deck rounded-2xl p-4 border border-halloween-purple/40 space-y-2.5">
         <h4 class="font-bold text-xs text-white uppercase tracking-wider flex items-center gap-1.5">
           <i data-lucide="users" class="w-4 h-4 text-halloween-orange"></i>
           <span>Available Squads (Tap to Sign In)</span>
@@ -406,6 +443,30 @@
 
       <!-- Admin Full Controls Content (Shown after PIN) -->
       <div id="adminControlsArea" class="hidden space-y-3.5">
+
+        <!-- Game Mode & Teams Availability Toggle -->
+        <div class="glass-deck rounded-2xl p-4 border border-halloween-purple/40 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-xs text-white uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="shield" class="w-4 h-4 text-halloween-orange"></i>
+              <span>Game Mode & Team Availability</span>
+            </h4>
+            <span id="adminModePill" class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+              Teams & Solo
+            </span>
+          </div>
+          <p class="text-xs text-gray-300">
+            Control whether squads are available for this game, or restrict the hunt to individual solo players only.
+          </p>
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <button id="adminBtnModeTeams" onclick="setTeamsEnabled(true)" class="min-h-[44px] px-3 py-2 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 border border-halloween-orange bg-halloween-orange/20 text-white">
+              <span>👥 Teams & Solo</span>
+            </button>
+            <button id="adminBtnModeSolo" onclick="setTeamsEnabled(false)" class="min-h-[44px] px-3 py-2 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 border border-halloween-purple/40 bg-halloween-night text-gray-400">
+              <span>👤 Solo Only</span>
+            </button>
+          </div>
+        </div>
 
         <!-- Team Sign-in QR Code Generator -->
         <div class="glass-deck rounded-2xl p-4 border border-halloween-purple/40 space-y-3">
@@ -496,23 +557,27 @@
           </div>
         </div>
 
-        <!-- Squads Overrides & Points Manager -->
+        <!-- Participants (Squads & Solo Hunters) Overrides & Points Manager -->
         <div class="glass-deck rounded-2xl p-4 border border-halloween-purple/40 space-y-2.5">
           <div class="flex items-center justify-between">
             <h4 class="font-bold text-xs text-white uppercase tracking-wider flex items-center gap-1.5">
               <i data-lucide="users" class="w-4 h-4 text-halloween-slime"></i>
-              <span>Squad Manager, Overrides & Bonus Points</span>
+              <span id="adminParticipantsHeading">Participants (Squads & Solo Hunters)</span>
             </h4>
           </div>
           <div class="flex items-center gap-1.5">
             <input id="adminSquadIconInput" type="text" value="👻" class="w-11 bg-halloween-black border border-halloween-purple rounded-xl px-2 py-2 text-center text-sm text-white focus:outline-none focus:border-halloween-orange">
-            <input id="adminSquadNameInput" type="text" placeholder="Add or edit squad name..." class="flex-1 bg-halloween-black border border-halloween-purple rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-halloween-orange">
+            <input id="adminSquadNameInput" type="text" placeholder="Add or edit participant..." class="flex-1 bg-halloween-black border border-halloween-purple rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-halloween-orange">
+            <select id="adminParticipantTypeSelect" class="bg-halloween-black border border-halloween-purple rounded-xl px-2 py-2 text-xs font-bold text-gray-300 focus:outline-none focus:border-halloween-orange">
+              <option value="squad">Squad</option>
+              <option value="solo">Solo</option>
+            </select>
             <button id="adminSquadSaveBtn" onclick="saveAdminSquad()" class="min-h-[38px] px-3 rounded-xl bg-halloween-orange text-black font-black text-xs shrink-0">
-              + Squad
+              + Add
             </button>
           </div>
           <div id="adminSquadActionsList" class="space-y-2">
-            <!-- Dynamic Squad Rows -->
+            <!-- Dynamic Participant Rows -->
           </div>
         </div>
 
@@ -891,12 +956,14 @@
     const STORAGE_KEY_TEAMS = 'spookhunt_qr_teams_v4';
     const STORAGE_KEY_ALERTS = 'spookhunt_qr_alerts_v4';
     const STORAGE_KEY_ACTIVE_TEAM = 'spookhunt_qr_active_team_v4';
+    const STORAGE_KEY_TEAMS_ENABLED = 'spookhunt_qr_teams_enabled_v4';
 
     /* State Variables */
     let clues = [];
     let teams = [];
     let alerts = [];
     let activeTeamId = 't-phantoms';
+    let teamsEnabled = true;
     let currentFilter = 'all';
     let currentVerifyingClue = null;
     let photoSnapVerified = false;
@@ -911,6 +978,31 @@
     let currentFacingMode = "environment"; // default back camera
     let currentTorchState = false;
     let adminQrCodeGeneratorInstance = null;
+
+    function ensureValidActiveParticipant() {
+      if (!teamsEnabled) {
+        let cur = teams.find(t => t.id === activeTeamId);
+        if (!cur || !cur.isSolo) {
+          let solo = teams.find(t => t.isSolo);
+          if (!solo) {
+            solo = {
+              id: 'solo-' + Date.now(),
+              name: 'Solo Hunter 1',
+              icon: '🕵️',
+              score: 0,
+              completedClueIds: [],
+              startedAt: Date.now(),
+              finishedAt: null,
+              status: 'hunting',
+              alertSent: false,
+              isSolo: true
+            };
+            teams.unshift(solo);
+          }
+          activeTeamId = solo.id;
+        }
+      }
+    }
 
     /* Initialize Application */
     function initMobileApp() {
@@ -935,6 +1027,15 @@
         alerts = [];
       }
 
+      try {
+        const storedTeamsEnabled = localStorage.getItem(STORAGE_KEY_TEAMS_ENABLED);
+        if (storedTeamsEnabled !== null) {
+          teamsEnabled = storedTeamsEnabled === 'true';
+        }
+      } catch (e) {
+        teamsEnabled = true;
+      }
+
       const savedTeamId = localStorage.getItem(STORAGE_KEY_ACTIVE_TEAM);
       if (savedTeamId && teams.some(t => t.id === savedTeamId)) {
         activeTeamId = savedTeamId;
@@ -942,6 +1043,7 @@
         activeTeamId = teams[0].id;
       }
 
+      ensureValidActiveParticipant();
       saveMobileState(false);
       renderAllViews();
       startStopwatch();
@@ -964,6 +1066,8 @@
       if (Array.isArray(remote.clues) && remote.clues.length) clues = remote.clues;
       if (Array.isArray(remote.teams) && remote.teams.length) teams = remote.teams;
       if (Array.isArray(remote.alerts)) alerts = remote.alerts;
+      if (typeof remote.teamsEnabled === 'boolean') teamsEnabled = remote.teamsEnabled;
+      ensureValidActiveParticipant();
       lastServerUpdatedAt = remote.updatedAt;
       saveMobileState(false);
       renderAllViews();
@@ -1025,8 +1129,9 @@
       localStorage.setItem(STORAGE_KEY_TEAMS, JSON.stringify(teams));
       localStorage.setItem(STORAGE_KEY_ALERTS, JSON.stringify(alerts));
       localStorage.setItem(STORAGE_KEY_ACTIVE_TEAM, activeTeamId);
+      localStorage.setItem(STORAGE_KEY_TEAMS_ENABLED, String(teamsEnabled));
       if (pushRemote) {
-        const snapshot = { clues, teams, alerts, updatedAt: Date.now() };
+        const snapshot = { clues, teams, alerts, teamsEnabled, updatedAt: Date.now() };
         lastServerUpdatedAt = snapshot.updatedAt;
         fetch('/api/state', {
           method: 'POST',
@@ -1317,6 +1422,8 @@
           targetClueId = raw.replace(/^CLUE:/i, '').trim();
         } else if (/^SQUAD:/i.test(raw)) {
           targetTeamId = raw.replace(/^SQUAD:/i, '').trim();
+        } else if (/^SOLO:/i.test(raw)) {
+          targetTeamId = raw.replace(/^SOLO:/i, '').trim();
         } else {
           targetTeamId = raw;
           targetSecretCode = raw.toUpperCase();
@@ -1353,6 +1460,10 @@
       );
 
       if (matchedTeam) {
+        if (!teamsEnabled && !matchedTeam.isSolo) {
+          showMobileToast('Teams are disabled for this hunt. Please play solo!');
+          return;
+        }
         activeTeamId = matchedTeam.id;
         saveMobileState();
         stopMobileQrScanner();
@@ -1361,23 +1472,25 @@
         setTimeout(() => switchTab('hunt'), 800);
       } else if (targetTeamName || (targetTeamId && targetTeamId.length > 2)) {
         const newName = targetTeamName || targetTeamId;
-        const newSquad = {
-          id: 'team-' + Date.now(),
+        const isSolo = !teamsEnabled || /^SOLO:/i.test(raw);
+        const newEntry = {
+          id: (isSolo ? 'solo-' : 'team-') + Date.now(),
           name: newName,
-          icon: '🧙‍♀️',
+          icon: isSolo ? '🕵️' : '🧙‍♀️',
           score: 0,
           completedClueIds: [],
           startedAt: Date.now(),
           finishedAt: null,
           status: 'hunting',
-          alertSent: false
+          alertSent: false,
+          isSolo: isSolo
         };
-        teams.push(newSquad);
-        activeTeamId = newSquad.id;
+        teams.push(newEntry);
+        activeTeamId = newEntry.id;
         saveMobileState();
         stopMobileQrScanner();
         renderAllViews();
-        showMobileToast(`New Squad "${newName}" Registered via QR!`);
+        showMobileToast(`New ${isSolo ? 'Solo Hunter' : 'Squad'} "${newName}" Registered via QR!`);
         setTimeout(() => switchTab('hunt'), 800);
       } else {
         showMobileToast('Unrecognized Halloween QR code format');
@@ -1445,6 +1558,11 @@
       document.getElementById('topTeamName').innerText = team.name;
       document.getElementById('topScoreDisplay').innerText = `${team.score} pts`;
 
+      const topRole = document.getElementById('topRoleText');
+      if (topRole) {
+        topRole.innerText = team.isSolo ? 'Solo' : (teamsEnabled ? 'Squad' : 'Solo');
+      }
+
       const completed = team.completedClueIds.length;
       const total = clues.length;
       const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -1473,43 +1591,148 @@
       renderAdminDeck();
     }
 
+    function joinSoloPlayer() {
+      const nameInput = document.getElementById('soloPlayerNameInput');
+      const iconInput = document.getElementById('soloPlayerIconSelect');
+      const name = (nameInput?.value || '').trim();
+      const icon = iconInput?.value || '🕵️';
+
+      if (!name) {
+        showMobileToast('Please enter your player name!');
+        return;
+      }
+
+      let solo = teams.find(t => t.isSolo && t.name.toLowerCase() === name.toLowerCase());
+      if (solo) {
+        activeTeamId = solo.id;
+        showMobileToast(`Switched to Solo Hunter "${solo.name}"!`);
+      } else {
+        solo = {
+          id: 'solo-' + Date.now(),
+          name,
+          icon,
+          score: 0,
+          completedClueIds: [],
+          startedAt: Date.now(),
+          finishedAt: null,
+          status: 'hunting',
+          alertSent: false,
+          isSolo: true
+        };
+        teams.push(solo);
+        activeTeamId = solo.id;
+        showMobileToast(`Joined hunt as Solo Hunter "${name}"! 🎃`);
+      }
+
+      if (nameInput) nameInput.value = '';
+      saveMobileState();
+      renderAllViews();
+      setTimeout(() => switchTab('hunt'), 600);
+    }
+
     function renderSignInView() {
       const team = getCurrentTeam();
       document.getElementById('signInCurrentIcon').innerText = team.icon;
       document.getElementById('signInCurrentTitle').innerText = team.name;
 
+      const descEl = document.getElementById('signInCurrentDesc');
+      if (descEl) {
+        if (!teamsEnabled) {
+          descEl.innerText = 'Solo Hunter Mode active: Teams are disabled for this game. Tracking as individual hunter.';
+        } else if (team.isSolo) {
+          descEl.innerText = 'Signed in as a Solo Hunter. Scan badges or tap below to switch to another profile or squad.';
+        } else {
+          descEl.innerText = 'Signed in as squad. Scan another squad badge or QR sign-in pass to switch on this device.';
+        }
+      }
+
+      // Hide or show squad container based on teamsEnabled
+      const squadsContainer = document.getElementById('squadsContainer');
+      if (squadsContainer) {
+        if (teamsEnabled) {
+          squadsContainer.classList.remove('hidden');
+        } else {
+          squadsContainer.classList.add('hidden');
+        }
+      }
+
+      // Render Squads list (only squads: !t.isSolo)
       const squadList = document.getElementById('signInSquadList');
-      if (!squadList) return;
-      squadList.innerHTML = '';
+      if (squadList) {
+        squadList.innerHTML = '';
+        const squadItems = teams.filter(t => !t.isSolo);
+        if (squadItems.length === 0) {
+          squadList.innerHTML = '<div class="text-xs text-gray-500 py-2 text-center">No squads registered.</div>';
+        } else {
+          squadItems.forEach(t => {
+            const isActive = t.id === activeTeamId;
+            const btn = document.createElement('button');
+            btn.className = `w-full min-h-[48px] p-3 rounded-2xl border text-left flex items-center justify-between transition ${
+              isActive 
+                ? 'bg-halloween-orange/20 border-halloween-orange text-white' 
+                : 'bg-halloween-black/80 border-halloween-purple/40 text-gray-300'
+            }`;
 
-      teams.forEach(t => {
-        const isActive = t.id === activeTeamId;
-        const btn = document.createElement('button');
-        btn.className = `w-full min-h-[48px] p-3 rounded-2xl border text-left flex items-center justify-between transition ${
-          isActive 
-            ? 'bg-halloween-orange/20 border-halloween-orange text-white' 
-            : 'bg-halloween-black/80 border-halloween-purple/40 text-gray-300'
-        }`;
+            btn.onclick = () => {
+              activeTeamId = t.id;
+              saveMobileState();
+              renderAllViews();
+              showMobileToast(`Switched squad to ${t.name}!`);
+            };
 
-        btn.onclick = () => {
-          activeTeamId = t.id;
-          saveMobileState();
-          renderAllViews();
-          showMobileToast(`Switched squad to ${t.name}!`);
-        };
+            btn.innerHTML = `
+              <div class="flex items-center gap-2.5">
+                <span class="text-2xl">${t.icon}</span>
+                <div>
+                  <div class="font-extrabold text-xs text-white">${t.name}</div>
+                  <div class="text-[10px] text-gray-400 font-mono">${t.completedClueIds.length}/${clues.length} clues &bull; ${t.score} pts</div>
+                </div>
+              </div>
+              ${isActive ? '<span class="text-[10px] px-2 py-0.5 bg-halloween-orange text-black font-black rounded-full">ACTIVE</span>' : ''}
+            `;
+            squadList.appendChild(btn);
+          });
+        }
+      }
 
-        btn.innerHTML = `
-          <div class="flex items-center gap-2.5">
-            <span class="text-2xl">${t.icon}</span>
-            <div>
-              <div class="font-extrabold text-xs text-white">${t.name}</div>
-              <div class="text-[10px] text-gray-400 font-mono">${t.completedClueIds.length}/${clues.length} clues &bull; ${t.score} pts</div>
-            </div>
-          </div>
-          ${isActive ? '<span class="text-[10px] px-2 py-0.5 bg-halloween-orange text-black font-black rounded-full">ACTIVE</span>' : ''}
-        `;
-        squadList.appendChild(btn);
-      });
+      // Render Solo Hunters list (t.isSolo === true)
+      const soloList = document.getElementById('signInSoloList');
+      if (soloList) {
+        soloList.innerHTML = '';
+        const soloItems = teams.filter(t => t.isSolo);
+        if (soloItems.length === 0) {
+          soloList.innerHTML = '<div class="text-[11px] text-gray-500 py-1.5 text-center italic">No solo hunters yet. Enter your name above!</div>';
+        } else {
+          soloItems.forEach(s => {
+            const isActive = s.id === activeTeamId;
+            const btn = document.createElement('button');
+            btn.className = `w-full min-h-[42px] px-3 py-2 rounded-xl border text-left flex items-center justify-between transition ${
+              isActive
+                ? 'bg-amber-500/20 border-amber-500 text-white shadow-glow-orange'
+                : 'bg-halloween-black/70 border-halloween-purple/30 text-gray-300 hover:border-amber-500/50'
+            }`;
+
+            btn.onclick = () => {
+              activeTeamId = s.id;
+              saveMobileState();
+              renderAllViews();
+              showMobileToast(`Switched to Solo Hunter ${s.name}!`);
+            };
+
+            btn.innerHTML = `
+              <div class="flex items-center gap-2">
+                <span class="text-lg">${s.icon}</span>
+                <div class="font-bold text-xs text-white">${s.name} <span class="text-[9px] px-1 py-0.2 rounded font-black bg-amber-500/20 text-amber-300 ml-1">SOLO</span></div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] font-mono text-gray-400">${s.score} pts</span>
+                ${isActive ? '<span class="text-[9px] px-1.5 py-0.5 bg-amber-400 text-black font-black rounded">YOU</span>' : ''}
+              </div>
+            `;
+            soloList.appendChild(btn);
+          });
+        }
+      }
     }
 
     function setFilter(filter) {
@@ -1905,8 +2128,11 @@
               </span>
               <span class="text-2xl">${team.icon}</span>
               <div>
-                <div class="font-extrabold text-sm text-white flex items-center gap-1.5">
+                <div class="font-extrabold text-sm text-white flex items-center gap-1.5 flex-wrap">
                   <span>${team.name}</span>
+                  ${team.isSolo 
+                    ? '<span class="text-[9px] px-1.5 py-0.2 rounded font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">SOLO</span>' 
+                    : (teamsEnabled ? '<span class="text-[9px] px-1.5 py-0.2 rounded font-bold bg-halloween-purple/40 text-purple-200 border border-halloween-purple/50">SQUAD</span>' : '')}
                   ${team.id === activeTeamId ? '<span class="text-[9px] px-1.5 py-0.2 bg-halloween-orange text-black font-black rounded">YOU</span>' : ''}
                 </div>
                 <div class="text-[11px] text-gray-400 font-mono">Time: ${duration}</div>
@@ -1961,6 +2187,14 @@
       }
     }
 
+    function setTeamsEnabled(enabled) {
+      teamsEnabled = Boolean(enabled);
+      ensureValidActiveParticipant();
+      saveMobileState();
+      renderAllViews();
+      showMobileToast(teamsEnabled ? 'Teams mode enabled! 👥' : 'Solo-only mode activated! 👤');
+    }
+
     function renderAdminDeck() {
       if (!adminUnlocked) return;
 
@@ -1968,21 +2202,55 @@
       updateAlertBadges();
       document.getElementById('adminAlertCount').innerText = alerts.length;
 
+      // Update Game Mode Pill & Buttons
+      const pill = document.getElementById('adminModePill');
+      const btnTeams = document.getElementById('adminBtnModeTeams');
+      const btnSolo = document.getElementById('adminBtnModeSolo');
+      if (pill) {
+        pill.innerText = teamsEnabled ? 'Teams & Solo' : 'Solo Only';
+        pill.className = teamsEnabled 
+          ? 'px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+          : 'px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40';
+      }
+      if (btnTeams && btnSolo) {
+        if (teamsEnabled) {
+          btnTeams.className = 'min-h-[44px] px-3 py-2 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 border border-halloween-orange bg-halloween-orange/20 text-white';
+          btnSolo.className = 'min-h-[44px] px-3 py-2 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 border border-halloween-purple/40 bg-halloween-night text-gray-400';
+        } else {
+          btnTeams.className = 'min-h-[44px] px-3 py-2 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 border border-halloween-purple/40 bg-halloween-night text-gray-400';
+          btnSolo.className = 'min-h-[44px] px-3 py-2 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 border border-amber-500 bg-amber-500/20 text-amber-300';
+        }
+      }
+
       // Populate Admin Team & Clue QR Select
       const qrSelect = document.getElementById('adminQrTeamSelect');
       if (qrSelect) {
         const currentSelected = qrSelect.value;
         qrSelect.innerHTML = '';
-        const teamGroup = document.createElement('optgroup');
-        teamGroup.label = 'Squad Sign-In QRs';
-        teams.forEach(t => {
+
+        if (teamsEnabled) {
+          const teamGroup = document.createElement('optgroup');
+          teamGroup.label = 'Squad Sign-In QRs';
+          teams.filter(t => !t.isSolo).forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = `SQUAD:${t.id}`;
+            opt.innerText = `${t.icon} ${t.name} (Squad)`;
+            if (opt.value === currentSelected || (!currentSelected && t.id === activeTeamId)) opt.selected = true;
+            teamGroup.appendChild(opt);
+          });
+          if (teamGroup.children.length) qrSelect.appendChild(teamGroup);
+        }
+
+        const soloGroup = document.createElement('optgroup');
+        soloGroup.label = 'Solo Player Sign-In QRs';
+        teams.filter(t => t.isSolo).forEach(s => {
           const opt = document.createElement('option');
-          opt.value = `SQUAD:${t.id}`;
-          opt.innerText = `${t.icon} ${t.name} (Sign-In)`;
-          if (opt.value === currentSelected || (!currentSelected && t.id === activeTeamId)) opt.selected = true;
-          teamGroup.appendChild(opt);
+          opt.value = `SOLO:${s.id}`;
+          opt.innerText = `${s.icon} ${s.name} (Solo Hunter)`;
+          if (opt.value === currentSelected || (!currentSelected && s.id === activeTeamId)) opt.selected = true;
+          soloGroup.appendChild(opt);
         });
-        qrSelect.appendChild(teamGroup);
+        if (soloGroup.children.length) qrSelect.appendChild(soloGroup);
 
         const clueGroup = document.createElement('optgroup');
         clueGroup.label = 'Physical Clue Relic QRs';
@@ -2022,7 +2290,7 @@
         }
       }
 
-      // Render Squad Overrides Rows
+      // Render Participants Overrides Rows
       const squadList = document.getElementById('adminSquadActionsList');
       if (squadList) {
         squadList.innerHTML = '';
@@ -2033,7 +2301,12 @@
             <div class="flex items-center gap-2 min-w-0">
               <span class="text-lg">${t.icon}</span>
               <div class="truncate">
-                <div class="font-bold text-white truncate">${t.name}</div>
+                <div class="font-bold text-white truncate flex items-center gap-1">
+                  <span class="truncate">${t.name}</span>
+                  ${t.isSolo 
+                    ? '<span class="text-[8.5px] px-1 py-0.2 rounded font-black bg-amber-500/20 text-amber-300 shrink-0">SOLO</span>' 
+                    : '<span class="text-[8.5px] px-1 py-0.2 rounded font-bold bg-halloween-purple/40 text-purple-200 shrink-0">SQUAD</span>'}
+                </div>
                 <div class="text-[10px] text-gray-400 font-mono">${t.score} pts &bull; ${t.completedClueIds.length}/${clues.length}</div>
               </div>
             </div>
@@ -2181,6 +2454,8 @@
       editingSquadId = team.id;
       document.getElementById('adminSquadIconInput').value = team.icon;
       document.getElementById('adminSquadNameInput').value = team.name;
+      const typeSelect = document.getElementById('adminParticipantTypeSelect');
+      if (typeSelect) typeSelect.value = team.isSolo ? 'solo' : 'squad';
       document.getElementById('adminSquadSaveBtn').innerText = 'Save';
       document.getElementById('adminSquadNameInput').focus();
     }
@@ -2188,8 +2463,11 @@
     function saveAdminSquad() {
       const icon = document.getElementById('adminSquadIconInput').value.trim() || '👻';
       const name = document.getElementById('adminSquadNameInput').value.trim();
+      const type = document.getElementById('adminParticipantTypeSelect')?.value || 'squad';
+      const isSolo = type === 'solo' || !teamsEnabled;
+
       if (!name) {
-        showMobileToast('Enter a squad name!');
+        showMobileToast('Enter participant name!');
         return;
       }
       if (editingSquadId) {
@@ -2197,13 +2475,14 @@
         if (team) {
           team.icon = icon;
           team.name = name;
+          team.isSolo = isSolo;
         }
         editingSquadId = null;
-        document.getElementById('adminSquadSaveBtn').innerText = '+ Squad';
-        showMobileToast(`Updated squad "${name}"!`);
+        document.getElementById('adminSquadSaveBtn').innerText = '+ Add';
+        showMobileToast(`Updated "${name}"!`);
       } else {
-        const newSquad = {
-          id: 't-' + Date.now(),
+        const newParticipant = {
+          id: (isSolo ? 'solo-' : 't-') + Date.now(),
           name,
           icon,
           score: 0,
@@ -2211,10 +2490,11 @@
           startedAt: Date.now(),
           finishedAt: null,
           status: 'hunting',
-          alertSent: false
+          alertSent: false,
+          isSolo: isSolo
         };
-        teams.push(newSquad);
-        showMobileToast(`Added squad "${name}"!`);
+        teams.push(newParticipant);
+        showMobileToast(`Added ${isSolo ? 'solo hunter' : 'squad'} "${name}"!`);
       }
       document.getElementById('adminSquadIconInput').value = '👻';
       document.getElementById('adminSquadNameInput').value = '';
@@ -2224,7 +2504,7 @@
 
     function deleteAdminSquad(teamId) {
       if (teams.length <= 1) {
-        showMobileToast('Must keep at least 1 squad!');
+        showMobileToast('Must keep at least 1 participant!');
         return;
       }
       const target = teams.find(t => t.id === teamId);
@@ -2233,11 +2513,11 @@
       if (activeTeamId === teamId) activeTeamId = teams[0].id;
       if (editingSquadId === teamId) {
         editingSquadId = null;
-        document.getElementById('adminSquadSaveBtn').innerText = '+ Squad';
+        document.getElementById('adminSquadSaveBtn').innerText = '+ Add';
       }
       saveMobileState();
       renderAllViews();
-      showMobileToast(`Deleted squad "${target.name}"`);
+      showMobileToast(`Deleted "${target.name}"`);
     }
 
     function awardSquadBonus(teamId, pts) {
@@ -2282,11 +2562,12 @@
     }
 
     function exportCSVResults() {
-      let csv = "Rank,Team Name,Score,Completed Clues,Total Clues,Hunt Duration,Status\n";
+      let csv = "Rank,Type,Name,Score,Completed Clues,Total Clues,Hunt Duration,Status\n";
       const sorted = [...teams].sort((a, b) => b.score - a.score);
       sorted.forEach((t, i) => {
         const dur = t.finishedAt ? formatTime(t.finishedAt - t.startedAt) : formatTime(Date.now() - t.startedAt);
-        csv += `${i + 1},"${t.name}",${t.score},${t.completedClueIds.length},${clues.length},"${dur}",${t.status}\n`;
+        const type = t.isSolo ? 'Solo' : 'Squad';
+        csv += `${i + 1},${type},"${t.name}",${t.score},${t.completedClueIds.length},${clues.length},"${dur}",${t.status}\n`;
       });
 
       const blob = new Blob([csv], { type: 'text/csv' });
