@@ -257,6 +257,46 @@
         </p>
       </div>
 
+      <!-- Play Solo (Individual Hunter) Registration / Switcher -->
+      <div id="soloPlayerSection" class="glass-deck rounded-2xl p-4 border border-halloween-purple/40 space-y-3">
+        <div class="flex items-center justify-between">
+          <h4 class="font-bold text-xs text-white uppercase tracking-wider flex items-center gap-1.5">
+            <span class="text-base">👤</span>
+            <span id="soloSectionHeading">Play Solo (Individual Hunter)</span>
+          </h4>
+          <span id="soloSectionBadge" class="text-[10px] px-2 py-0.5 rounded-full font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">
+            No Squad Needed
+          </span>
+        </div>
+        <p class="text-xs text-gray-300" id="soloSectionSubtitle">
+          Don't have a team or prefer to hunt solo? Enter your name below to compete on the leaderboard independently.
+        </p>
+        <div class="space-y-2">
+          <div class="flex items-center gap-2">
+            <select id="soloPlayerIconSelect" class="w-14 bg-halloween-black border border-halloween-purple rounded-xl px-1.5 py-2.5 text-xl text-center text-white focus:outline-none focus:border-halloween-orange shrink-0">
+              <option value="🕵️">🕵️</option>
+              <option value="🧙">🧙</option>
+              <option value="🐺">🐺</option>
+              <option value="🦇">🦇</option>
+              <option value="👤">👤</option>
+              <option value="🐱">🐱</option>
+              <option value="🎃">🎃</option>
+            </select>
+            <input id="soloPlayerNameInput" type="text" placeholder="Enter solo player name..." class="min-w-0 flex-1 bg-halloween-black border border-halloween-purple rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-halloween-orange">
+          </div>
+          <button onclick="joinSoloPlayer()" class="w-full min-h-[44px] py-2.5 px-3 rounded-xl bg-gradient-to-r from-halloween-orange to-amber-600 text-black font-extrabold text-xs shadow-glow-orange flex items-center justify-center gap-1.5 active:scale-95 transition">
+            <span>Play Solo &bull; Start Hunt</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </button>
+        </div>
+        <div id="soloHuntersListBlock" class="space-y-1.5 pt-1">
+          <div class="text-[10.5px] font-bold text-gray-400">Registered Solo Hunters (Tap to Switch):</div>
+          <div id="signInSoloList" class="space-y-1.5">
+            <!-- Dynamic Solo Players -->
+          </div>
+        </div>
+      </div>
+
       <!-- QR Camera Scanner Box -->
       <div class="glass-orange rounded-3xl p-4 border-2 border-halloween-orange shadow-glow-orange space-y-3">
         <div class="flex items-center justify-between">
@@ -343,43 +383,6 @@
         <p class="text-[10px] text-gray-400">
           Camera unavailable? Select your squad directly below or paste team JSON/ID.
         </p>
-      </div>
-
-      <!-- Play Solo (Individual Hunter) Registration / Switcher -->
-      <div id="soloPlayerSection" class="glass-deck rounded-2xl p-4 border border-halloween-purple/40 space-y-3">
-        <div class="flex items-center justify-between">
-          <h4 class="font-bold text-xs text-white uppercase tracking-wider flex items-center gap-1.5">
-            <span class="text-base">👤</span>
-            <span id="soloSectionHeading">Play Solo (Individual Hunter)</span>
-          </h4>
-          <span id="soloSectionBadge" class="text-[10px] px-2 py-0.5 rounded-full font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">
-            No Squad Needed
-          </span>
-        </div>
-        <p class="text-xs text-gray-300" id="soloSectionSubtitle">
-          Don't have a team or prefer to hunt solo? Enter your name below to compete on the leaderboard independently.
-        </p>
-        <div class="flex items-center gap-2">
-          <select id="soloPlayerIconSelect" class="bg-halloween-black border border-halloween-purple rounded-xl px-2 py-2.5 text-base text-white focus:outline-none focus:border-halloween-orange shrink-0">
-            <option value="🕵️">🕵️ Detective</option>
-            <option value="🧙">🧙 Witch</option>
-            <option value="🐺">🐺 Werewolf</option>
-            <option value="🦇">🦇 Vampire</option>
-            <option value="👤">👤 Shadow</option>
-            <option value="🐱">🐱 Black Cat</option>
-            <option value="🎃">🎃 Pumpkin</option>
-          </select>
-          <input id="soloPlayerNameInput" type="text" placeholder="Enter solo player name..." class="flex-1 bg-halloween-black border border-halloween-purple rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-halloween-orange">
-          <button onclick="joinSoloPlayer()" class="min-h-[44px] px-3.5 rounded-xl bg-gradient-to-r from-halloween-orange to-amber-600 text-black font-extrabold text-xs shadow-glow-orange shrink-0">
-            Play Solo
-          </button>
-        </div>
-        <div id="soloHuntersListBlock" class="space-y-1.5 pt-1">
-          <div class="text-[10.5px] font-bold text-gray-400">Registered Solo Hunters (Tap to Switch):</div>
-          <div id="signInSoloList" class="space-y-1.5">
-            <!-- Dynamic Solo Players -->
-          </div>
-        </div>
       </div>
 
       <!-- One-Tap Squad Switcher List (Hidden when teams disabled) -->
