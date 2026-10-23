@@ -271,18 +271,24 @@
         <p class="text-xs text-gray-300" id="soloSectionSubtitle">
           Don't have a team or prefer to hunt solo? Enter your name below to compete on the leaderboard independently.
         </p>
-        <div class="space-y-2">
-          <div class="flex items-center gap-2">
-            <select id="soloPlayerIconSelect" class="w-14 bg-halloween-black border border-halloween-purple rounded-xl px-1.5 py-2.5 text-xl text-center text-white focus:outline-none focus:border-halloween-orange shrink-0">
-              <option value="🕵️">🕵️</option>
-              <option value="🧙">🧙</option>
-              <option value="🐺">🐺</option>
-              <option value="🦇">🦇</option>
-              <option value="👤">👤</option>
-              <option value="🐱">🐱</option>
-              <option value="🎃">🎃</option>
-            </select>
-            <input id="soloPlayerNameInput" type="text" placeholder="Enter solo player name..." class="min-w-0 flex-1 bg-halloween-black border border-halloween-purple rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-halloween-orange">
+        <div class="space-y-2.5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[10px] uppercase font-bold text-gray-400 mb-1">Avatar & Title</label>
+              <select id="soloPlayerIconSelect" class="w-full bg-halloween-black border border-halloween-purple rounded-xl px-3 py-2.5 text-xs font-bold text-white focus:outline-none focus:border-halloween-orange">
+                <option value="🕵️">🕵️ Detective</option>
+                <option value="🧙">🧙 Witch</option>
+                <option value="🐺">🐺 Werewolf</option>
+                <option value="🦇">🦇 Vampire</option>
+                <option value="👤">👤 Shadow</option>
+                <option value="🐱">🐱 Black Cat</option>
+                <option value="🎃">🎃 Pumpkin</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[10px] uppercase font-bold text-gray-400 mb-1">Player Name</label>
+              <input id="soloPlayerNameInput" type="text" placeholder="Enter player name..." class="w-full bg-halloween-black border border-halloween-purple rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-halloween-orange">
+            </div>
           </div>
           <button onclick="joinSoloPlayer()" class="w-full min-h-[44px] py-2.5 px-3 rounded-xl bg-gradient-to-r from-halloween-orange to-amber-600 text-black font-extrabold text-xs shadow-glow-orange flex items-center justify-center gap-1.5 active:scale-95 transition">
             <span>Play Solo &bull; Start Hunt</span>
@@ -822,87 +828,87 @@
   </div>
 
   <script>
-    /* Default Hunt Clues */
+    /* Default Hunt Clues (Imported from Scavenger Hunt Google Form) */
     const INITIAL_CLUES = [
       {
         id: 'c1',
-        title: 'The Whispering Pumpkin',
-        location: 'Front Porch / Main Gate',
-        icon: '🎃',
-        riddle: 'I have a wicked grin with no teeth to bite. At dusk I burn with glowing firelight. What five-letter word is carved into my hollow crown?',
-        secretCode: 'JACKO',
+        title: 'Question 1: The Invisible Breath',
+        location: 'Look around the venue',
+        icon: '💨',
+        riddle: 'I’m all around you but you can’t see me.\nI help you breathe, but I’m not a tree.\nWithout me, you’d last just a minute or two.\nWhat am I?',
+        secretCode: 'OXYGEN',
         points: 50,
-        hint: 'Examine the underside base of the big carved jack-o\'-lantern.'
+        hint: 'Word Bank Letter: O. You inhale this every second.'
       },
       {
         id: 'c2',
-        title: 'The Alchemist\'s Calderon',
-        location: 'Kitchen / Hearth Area',
-        icon: '🧪',
-        riddle: 'Eye of newt and toe of frog; I bubble in smoke amidst the midnight fog. Seek the glass phial dipped in poison-green wax.',
-        secretCode: 'POISON',
-        points: 75,
-        hint: 'Resting on the spice shelf near the apple cider calderon.'
+        title: 'Question 2: Pure Energy',
+        location: 'Word Bank: O',
+        icon: '💡',
+        riddle: 'I am made up of energy, but I am not matter. What am I?',
+        secretCode: 'LIGHT',
+        points: 50,
+        hint: 'Word Bank Letter: L. It illuminates the darkness.'
       },
       {
         id: 'c3',
-        title: 'The Captain\'s Epitaph',
-        location: 'Cemetery Lawn / Ivy Bush',
-        icon: '🪦',
-        riddle: 'Here lies an explorer named Captain Drake. He fell asleep and never did awake. What 4-digit year is carved into his tomb?',
-        secretCode: '1692',
-        points: 100,
-        hint: 'Tucked inside the ivy bushes near the ancient oak tree.'
+        title: 'Question 3: The Endless Traveler',
+        location: 'Word Bank: L O',
+        icon: '⏳',
+        riddle: 'What always moves, but never gets anywhere?',
+        secretCode: 'TIME',
+        points: 50,
+        hint: 'Word Bank Letter: T. Check your ticking clock or hourglass.'
       },
       {
         id: 'c4',
-        title: 'The Velvet Arachnid',
-        location: 'Attic Stairs / Bannister',
-        icon: '🕷️',
-        riddle: 'Eight thin legs and jewel-black eyes; I spin silken nets for midnight flies. Count my fangs to learn my species name.',
-        secretCode: 'ARACHNID',
+        title: 'Question 4: The Baker\'s Secret',
+        location: 'Word Bank: T L O',
+        icon: '🍞',
+        riddle: 'I am alive yet I\'m often used to bake. What am I?',
+        secretCode: 'YEAST',
         points: 50,
-        hint: 'Tangled in the black spiderweb garland on the stairs.'
+        hint: 'Word Bank Letter: Y. Living fungus culture that makes dough rise.'
       },
       {
         id: 'c5',
-        title: 'The Phantom Looking Glass',
-        location: 'Foyer / Coat Wardrobe',
-        icon: '🪞',
-        riddle: 'Speak my secret backwards or gaze upon your shade. What word is scrawled in phantom vapor before shadows fade?',
-        secretCode: 'SPECTER',
-        points: 125,
-        hint: 'Look behind the antique mirror beside the velvet coats.'
+        title: 'Question 5: Desert Oasis',
+        location: 'Word Bank: T Y L O',
+        icon: '💧',
+        riddle: 'Here in the desert, I am often very rare to see. What am I?',
+        secretCode: 'LIQUID',
+        points: 50,
+        hint: 'Word Bank Letter: L. Water, beverage, or rain.'
       },
       {
         id: 'c6',
-        title: 'The Iron Skeleton Key',
-        location: 'Library / Study Bookcase',
-        icon: '🗝️',
-        riddle: 'Between Edgar Allan Poe and Mary Shelley\'s dread, I rest where only spirits tread. What bird is embossed on my stem?',
-        secretCode: 'RAVEN',
-        points: 100,
-        hint: 'Inside the hollow black book on shelf number three.'
+        title: 'Question 6: The Vertical Path',
+        location: 'Word Bank: T L Y L O',
+        icon: '📈',
+        riddle: 'I go up and down but never side to side. What am I?',
+        secretCode: 'Y-AXIS',
+        points: 50,
+        hint: 'Word Bank Letter: Y. The vertical coordinate axis on a math plane.'
       },
       {
         id: 'c7',
-        title: 'The Witch\'s Familiar',
-        location: 'Greenhouse / Porch Bench',
-        icon: '🐈‍⬛',
-        riddle: 'Sleek as midnight with eyes of burning gold, I cross your path when dark tales are told. What hour is inscribed on my collar tag?',
-        secretCode: 'MIDNIGHT',
-        points: 75,
-        hint: 'Check the plush black cat sitting upon the porch swing.'
+        title: 'Question 7: The Universal Thread',
+        location: 'Word Bank: T Y L Y L O',
+        icon: '🦴',
+        riddle: 'I am part of you. I am part of an animal. I am a part of a plant. What am I?',
+        secretCode: 'ANATOMY',
+        points: 50,
+        hint: 'Word Bank Letter: A. The biological physical structure of living things.'
       },
       {
         id: 'c8',
-        title: 'The Blood Moon Talisman',
-        location: 'Patio Fire Ring / Gazebo',
-        icon: '🌕',
-        riddle: 'When the sky bleeds red and bats take flight, touch the crimson stone beneath the harvest light.',
-        secretCode: 'BLOODMOON',
+        title: 'Final Quest: Solve the Word Scramble!',
+        location: 'Grand Prize Station',
+        icon: '👑',
+        riddle: 'Solve the 7-letter word scramble from your gathered letter tokens (T Y A L Y L O). What is the secret word?',
+        secretCode: 'LOYALTY',
         points: 150,
-        hint: 'Mounted beside the red lantern in the center of the patio.'
+        hint: 'A noble virtue of steadfast devotion. Tell word to organizer for your prize!'
       }
     ];
 
@@ -955,11 +961,11 @@
     ];
 
     /* Storage Keys */
-    const STORAGE_KEY_CLUES = 'spookhunt_qr_clues_v4';
-    const STORAGE_KEY_TEAMS = 'spookhunt_qr_teams_v4';
-    const STORAGE_KEY_ALERTS = 'spookhunt_qr_alerts_v4';
-    const STORAGE_KEY_ACTIVE_TEAM = 'spookhunt_qr_active_team_v4';
-    const STORAGE_KEY_TEAMS_ENABLED = 'spookhunt_qr_teams_enabled_v4';
+    const STORAGE_KEY_CLUES = 'spookhunt_qr_clues_v5';
+    const STORAGE_KEY_TEAMS = 'spookhunt_qr_teams_v5';
+    const STORAGE_KEY_ALERTS = 'spookhunt_qr_alerts_v5';
+    const STORAGE_KEY_ACTIVE_TEAM = 'spookhunt_qr_active_team_v5';
+    const STORAGE_KEY_TEAMS_ENABLED = 'spookhunt_qr_teams_enabled_v5';
 
     /* State Variables */
     let clues = [];
@@ -1434,10 +1440,15 @@
       }
 
       // 1. Check if QR matches a Clue (by clueId or secretCode)
-      const matchedClue = clues.find(c =>
-        (targetClueId && c.id.toLowerCase() === targetClueId.toLowerCase()) ||
-        (targetSecretCode && c.secretCode.toUpperCase() === targetSecretCode.toUpperCase())
-      );
+      const matchedClue = clues.find(c => {
+        if (targetClueId && c.id.toLowerCase() === targetClueId.toLowerCase()) return true;
+        if (targetSecretCode) {
+          const cleanTarget = targetSecretCode.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+          const cleanSecret = c.secretCode.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+          if (c.secretCode.toUpperCase() === targetSecretCode.toUpperCase() || cleanTarget === cleanSecret) return true;
+        }
+        return false;
+      });
 
       if (matchedClue) {
         const team = getCurrentTeam();
@@ -1947,7 +1958,9 @@
       if (!currentVerifyingClue) return;
       const input = document.getElementById('drawerCodeInput').value.trim().toUpperCase();
       const error = document.getElementById('drawerErrorMsg');
-      const hasValidCode = Boolean(input && input === currentVerifyingClue.secretCode.toUpperCase());
+      const cleanInput = input.replace(/[^A-Z0-9]/g, '');
+      const cleanSecret = currentVerifyingClue.secretCode.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const hasValidCode = Boolean(input && (input === currentVerifyingClue.secretCode.toUpperCase() || cleanInput === cleanSecret));
       const hasValidSelfie = Boolean(currentSelfieDataUrl);
 
       if (!hasValidCode && !hasValidSelfie) {
