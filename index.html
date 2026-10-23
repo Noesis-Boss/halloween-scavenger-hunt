@@ -235,6 +235,21 @@
         </div>
       </div>
 
+      <!-- Live Word Bank / Scramble Letter Tiles Card -->
+      <div id="wordBankCard" class="glass-deck rounded-2xl p-3.5 border border-halloween-purple/40 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+            <span>🔤</span>
+            <span>Word Bank Letters</span>
+          </span>
+          <span id="wordBankCount" class="text-[10px] text-halloween-orange font-mono font-bold">0 / 7 Collected</span>
+        </div>
+        <div id="wordBankTiles" class="grid grid-cols-7 gap-1.5 pt-0.5">
+          <!-- Rendered dynamically -->
+        </div>
+        <p id="wordBankHint" class="text-[11px] text-gray-300 text-center italic">Solve each riddle to unlock letter tokens for the final scramble!</p>
+      </div>
+
       <!-- Clues Feed List -->
       <div id="cluesListFeed" class="space-y-3">
         <!-- Rendered dynamically via JavaScript -->
@@ -819,6 +834,26 @@
     </div>
   </div>
 
+  <!-- LETTER REVEAL CELEBRATION MODAL (SHOWN ON CORRECT PASSCODE) -->
+  <div id="letterRevealModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md hidden" role="dialog" aria-modal="true">
+    <div class="w-full max-w-sm glass-orange rounded-3xl p-6 text-center border-2 border-halloween-orange shadow-glow-orange space-y-4">
+      <div class="text-5xl animate-bounce">🔤✨</div>
+      <div>
+        <span class="text-[10px] font-black uppercase tracking-widest text-halloween-slime">Correct Answer Verified!</span>
+        <h3 id="revealClueTitle" class="font-creep text-2xl text-white mt-0.5">Relic Solved</h3>
+      </div>
+      <div class="p-4 rounded-2xl bg-halloween-black/90 border border-halloween-purple/40 space-y-1">
+        <p class="text-xs text-gray-300">Your Unlocked Letter Token:</p>
+        <div id="revealLetterToken" class="text-5xl font-mono font-black text-halloween-orange py-2 tracking-widest animate-pulse">[ O ]</div>
+        <p class="text-[10px] text-gray-400">Added to your Word Bank for the final scramble!</p>
+      </div>
+      <button onclick="dismissLetterReveal()" class="w-full min-h-[44px] py-2.5 px-4 rounded-xl bg-gradient-to-r from-halloween-orange to-amber-600 text-black font-black text-xs shadow-glow-orange flex items-center justify-center gap-1.5 active:scale-95 transition">
+        <span>Continue Hunt</span>
+        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </div>
+
   <!-- Floating Mobile Toast Notification Box -->
   <div id="mobileToast" class="fixed top-16 left-4 right-4 z-50 pointer-events-none transition-all duration-300 transform -translate-y-10 opacity-0 max-w-md mx-auto">
     <div class="p-3.5 rounded-2xl bg-halloween-black/95 border-2 border-halloween-orange shadow-2xl backdrop-blur-md flex items-center gap-3">
@@ -833,72 +868,79 @@
       {
         id: 'c1',
         title: 'Question 1: The Invisible Breath',
-        location: 'Look around the venue',
+        location: 'Venue Grounds',
         icon: '💨',
         riddle: 'I’m all around you but you can’t see me.\nI help you breathe, but I’m not a tree.\nWithout me, you’d last just a minute or two.\nWhat am I?',
         secretCode: 'OXYGEN',
         points: 50,
-        hint: 'Word Bank Letter: O. You inhale this every second.'
+        hint: 'You inhale this every second.',
+        rewardLetter: 'O'
       },
       {
         id: 'c2',
         title: 'Question 2: Pure Energy',
-        location: 'Word Bank: O',
+        location: 'Venue Grounds',
         icon: '💡',
         riddle: 'I am made up of energy, but I am not matter. What am I?',
         secretCode: 'LIGHT',
         points: 50,
-        hint: 'Word Bank Letter: L. It illuminates the darkness.'
+        hint: 'It illuminates the darkness.',
+        rewardLetter: 'L'
       },
       {
         id: 'c3',
         title: 'Question 3: The Endless Traveler',
-        location: 'Word Bank: L O',
+        location: 'Venue Grounds',
         icon: '⏳',
         riddle: 'What always moves, but never gets anywhere?',
         secretCode: 'TIME',
         points: 50,
-        hint: 'Word Bank Letter: T. Check your ticking clock or hourglass.'
+        hint: 'Check your ticking clock or hourglass.',
+        rewardLetter: 'T'
       },
       {
         id: 'c4',
         title: 'Question 4: The Baker\'s Secret',
-        location: 'Word Bank: T L O',
+        location: 'Venue Grounds',
         icon: '🍞',
         riddle: 'I am alive yet I\'m often used to bake. What am I?',
         secretCode: 'YEAST',
         points: 50,
-        hint: 'Word Bank Letter: Y. Living fungus culture that makes dough rise.'
+        hint: 'Living fungus culture that makes dough rise.',
+        rewardLetter: 'Y'
       },
       {
         id: 'c5',
         title: 'Question 5: Desert Oasis',
-        location: 'Word Bank: T Y L O',
+        location: 'Venue Grounds',
         icon: '💧',
         riddle: 'Here in the desert, I am often very rare to see. What am I?',
         secretCode: 'LIQUID',
         points: 50,
-        hint: 'Word Bank Letter: L. Water, beverage, or rain.'
+        hint: 'Water, beverage, or rain.',
+        rewardLetter: 'L'
       },
       {
         id: 'c6',
         title: 'Question 6: The Vertical Path',
-        location: 'Word Bank: T L Y L O',
+        location: 'Venue Grounds',
         icon: '📈',
         riddle: 'I go up and down but never side to side. What am I?',
         secretCode: 'Y-AXIS',
         points: 50,
-        hint: 'Word Bank Letter: Y. The vertical coordinate axis on a math plane.'
+        hint: 'The vertical coordinate axis on a math plane.',
+        rewardLetter: 'Y'
       },
       {
         id: 'c7',
         title: 'Question 7: The Universal Thread',
-        location: 'Word Bank: T Y L Y L O',
+        location: 'Venue Grounds',
         icon: '🦴',
         riddle: 'I am part of you. I am part of an animal. I am a part of a plant. What am I?',
         secretCode: 'ANATOMY',
         points: 50,
-        hint: 'Word Bank Letter: A. The biological physical structure of living things.'
+        hint: 'The biological physical structure of living things.',
+        rewardLetter: 'A'
       },
       {
         id: 'c8',
@@ -908,7 +950,8 @@
         riddle: 'Solve the 7-letter word scramble from your gathered letter tokens (T Y A L Y L O). What is the secret word?',
         secretCode: 'LOYALTY',
         points: 150,
-        hint: 'A noble virtue of steadfast devotion. Tell word to organizer for your prize!'
+        hint: 'A noble virtue of steadfast devotion. Tell word to organizer for your prize!',
+        rewardLetter: 'LOYALTY'
       }
     ];
 
@@ -961,11 +1004,11 @@
     ];
 
     /* Storage Keys */
-    const STORAGE_KEY_CLUES = 'spookhunt_qr_clues_v5';
-    const STORAGE_KEY_TEAMS = 'spookhunt_qr_teams_v5';
-    const STORAGE_KEY_ALERTS = 'spookhunt_qr_alerts_v5';
-    const STORAGE_KEY_ACTIVE_TEAM = 'spookhunt_qr_active_team_v5';
-    const STORAGE_KEY_TEAMS_ENABLED = 'spookhunt_qr_teams_enabled_v5';
+    const STORAGE_KEY_CLUES = 'spookhunt_qr_clues_v6';
+    const STORAGE_KEY_TEAMS = 'spookhunt_qr_teams_v6';
+    const STORAGE_KEY_ALERTS = 'spookhunt_qr_alerts_v6';
+    const STORAGE_KEY_ACTIVE_TEAM = 'spookhunt_qr_active_team_v6';
+    const STORAGE_KEY_TEAMS_ENABLED = 'spookhunt_qr_teams_enabled_v6';
 
     /* State Variables */
     let clues = [];
@@ -1452,18 +1495,23 @@
 
       if (matchedClue) {
         const team = getCurrentTeam();
-        if (!team.completedClueIds.includes(matchedClue.id)) {
+        const isNewSolve = !team.completedClueIds.includes(matchedClue.id);
+        if (isNewSolve) {
           team.completedClueIds.push(matchedClue.id);
           team.score += matchedClue.points;
-          showMobileToast(`Relic "${matchedClue.title}" Scanned! +${matchedClue.points} pts 🎃`);
         } else {
           showMobileToast(`"${matchedClue.title}" already solved by ${team.name}!`);
         }
         stopMobileQrScanner();
-        checkFinalHuntCompletion(team);
         saveMobileState();
         renderAllViews();
-        setTimeout(() => switchTab('hunt'), 700);
+        if (isNewSolve && matchedClue.rewardLetter && matchedClue.rewardLetter !== 'LOYALTY') {
+          showLetterReveal(matchedClue);
+        } else {
+          showMobileToast(`Relic "${matchedClue.title}" Scanned! +${matchedClue.points} pts 🎃`);
+          setTimeout(() => switchTab('hunt'), 700);
+        }
+        checkFinalHuntCompletion(team);
         return;
       }
 
@@ -1599,10 +1647,68 @@
       document.getElementById('countDone').innerText = completed;
 
       updateAlertBadges();
+      renderWordBank();
       renderCluesFeed();
       renderSignInView();
       renderLeaderboard();
       renderAdminDeck();
+    }
+
+    function renderWordBank() {
+      const container = document.getElementById('wordBankTiles');
+      const countEl = document.getElementById('wordBankCount');
+      const hintEl = document.getElementById('wordBankHint');
+      const team = getCurrentTeam();
+      if (!container || !team) return;
+
+      const letterClues = clues.filter(c => c.rewardLetter && c.rewardLetter !== 'LOYALTY');
+      let collected = 0;
+      container.innerHTML = '';
+
+      letterClues.forEach((c, idx) => {
+        const isSolved = team.completedClueIds.includes(c.id);
+        if (isSolved) collected++;
+
+        const tile = document.createElement('div');
+        tile.className = `aspect-square flex flex-col items-center justify-center rounded-xl border font-mono transition-all duration-300 ${
+          isSolved
+            ? 'bg-gradient-to-br from-halloween-orange to-amber-600 text-black border-amber-300 shadow-glow-orange font-black text-base'
+            : 'bg-halloween-night border-halloween-purple/40 text-gray-500 font-bold text-xs'
+        }`;
+        tile.innerHTML = `
+          <span>${isSolved ? c.rewardLetter : '?'}</span>
+          <span class="text-[8px] leading-none opacity-60">#${idx + 1}</span>
+        `;
+        container.appendChild(tile);
+      });
+
+      if (countEl) {
+        countEl.innerText = `${collected} / ${letterClues.length} Collected`;
+      }
+      if (hintEl) {
+        if (collected >= letterClues.length) {
+          hintEl.innerHTML = '<span class="text-halloween-slime font-extrabold animate-pulse">🎉 All 7 letter tokens unlocked: T Y A L Y L O! Unscramble them in the Final Quest!</span>';
+        } else {
+          hintEl.innerText = `Solve riddles to reveal each hidden letter token for the final scramble! (${collected}/${letterClues.length})`;
+        }
+      }
+    }
+
+    function showLetterReveal(clue) {
+      if (!clue.rewardLetter) return;
+      document.getElementById('revealClueTitle').innerText = clue.title;
+      document.getElementById('revealLetterToken').innerText = `[ ${clue.rewardLetter} ]`;
+      const modal = document.getElementById('letterRevealModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        fireHalloweenConfetti();
+      }
+    }
+
+    function dismissLetterReveal() {
+      const modal = document.getElementById('letterRevealModal');
+      if (modal) modal.classList.add('hidden');
+      switchTab('hunt');
     }
 
     function joinSoloPlayer() {
@@ -1848,7 +1954,10 @@
           <div class="mt-3 pt-3 border-t border-halloween-purple/20 flex items-center justify-between">
             <div class="text-[11px]">
               ${isDone 
-                ? '<span class="text-halloween-slime font-bold flex items-center gap-1"><i data-lucide="check" class="w-3.5 h-3.5"></i> Solved & Verified</span>' 
+                ? `<div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-halloween-slime font-bold flex items-center gap-1"><i data-lucide="check" class="w-3.5 h-3.5"></i> Solved</span>
+                    ${clue.rewardLetter && clue.rewardLetter !== 'LOYALTY' ? `<span class="px-2 py-0.5 rounded-lg bg-gradient-to-r from-halloween-orange to-amber-600 text-black font-mono font-black text-xs shadow-glow-orange flex items-center gap-1"><span>Letter:</span> <span class="text-sm font-black underline">${clue.rewardLetter}</span></span>` : ''}
+                   </div>` 
                 : '<span class="text-gray-400 font-medium">Physical rune passcode</span>'
               }
             </div>
@@ -1994,12 +2103,19 @@
 
       playSpookyTone('chime');
       closeVerificationDrawer();
-      showMobileToast(`Relic Banished! +${currentVerifyingClue.points} pts`);
-
-      checkFinalHuntCompletion(team);
+      const solvedClue = currentVerifyingClue;
+      currentVerifyingClue = null;
 
       saveMobileState();
       renderAllViews();
+
+      if (solvedClue && solvedClue.rewardLetter && solvedClue.rewardLetter !== 'LOYALTY') {
+        showLetterReveal(solvedClue);
+      } else {
+        showMobileToast(`Relic Solved! +${solvedClue ? solvedClue.points : 50} pts`);
+      }
+
+      checkFinalHuntCompletion(team);
     }
 
     function unmarkClueMobile(clueId) {
