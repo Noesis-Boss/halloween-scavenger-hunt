@@ -451,7 +451,7 @@
     <section id="tabAdmin" class="hidden space-y-3.5">
       
       <!-- Admin Security PIN Gate -->
-      <div id="adminPinGate" class="glass-orange rounded-2xl p-5 border border-halloween-orange/50 text-center space-y-3">
+      <div id="adminPinGate" class="glass-orange rounded-2xl p-5 border border-halloween-orange/50 text-center space-y-4">
         <div class="text-3xl animate-bounce">🧙‍♀️🔐</div>
         <h3 class="font-creep text-2xl text-halloween-orange tracking-wider">ADMIN COVEN SANCTUM</h3>
         <p class="text-xs text-gray-300">Enter Admin Passcode to generate team sign-in QR passes, manage clues, and observe completion alerts.</p>
@@ -463,6 +463,25 @@
           <i data-lucide="unlock" class="w-4 h-4"></i>
           <span>Unlock Admin Controls</span>
         </button>
+
+        <!-- QR Code to get to Hunt Page -->
+        <div class="pt-4 border-t border-halloween-purple/40 space-y-2.5">
+          <div class="text-xs font-bold text-gray-200 flex items-center justify-center gap-1.5">
+            <i data-lucide="qr-code" class="w-4 h-4 text-halloween-orange"></i>
+            <span>Scan with Phone to Open Hunt</span>
+          </div>
+          <div class="p-3.5 bg-white rounded-2xl max-w-[170px] mx-auto flex flex-col items-center justify-center shadow-lg">
+            <div id="adminLoginHuntQrContainer"></div>
+            <div class="text-black font-mono font-bold text-[10px] mt-1.5 text-center">SpookHunt App</div>
+          </div>
+          <p class="text-[11px] text-gray-400">Scan this badge to jump directly into the live scavenger hunt.</p>
+          <div>
+            <button onclick="switchTab('hunt')" class="min-h-[38px] px-4 py-1.5 rounded-xl bg-halloween-night border border-halloween-orange/60 text-halloween-orange font-bold text-xs hover:bg-halloween-orange hover:text-black transition inline-flex items-center gap-1.5">
+              <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+              <span>Open Hunt Page Directly</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Admin Full Controls Content (Shown after PIN) -->
@@ -871,7 +890,7 @@
         location: 'Venue Grounds',
         icon: '💨',
         riddle: 'I’m all around you but you can’t see me.\nI help you breathe, but I’m not a tree.\nWithout me, you’d last just a minute or two.\nWhat am I?',
-        secretCode: 'OXYGEN',
+        secretCode: 'OXYGEN|O2|02',
         points: 50,
         hint: 'You inhale this every second.',
         rewardLetter: 'O'
@@ -926,7 +945,7 @@
         location: 'Venue Grounds',
         icon: '📈',
         riddle: 'I go up and down but never side to side. What am I?',
-        secretCode: 'Y-AXIS',
+        secretCode: 'Y-AXIS|YAXIS|Y AXIS',
         points: 50,
         hint: 'The vertical coordinate axis on a math plane.',
         rewardLetter: 'Y'
@@ -954,6 +973,34 @@
         rewardLetter: 'LOYALTY'
       }
     ];
+
+    const DEFAULT_LETTER_MAP = {
+      'c1': 'O',
+      'c2': 'L',
+      'c3': 'T',
+      'c4': 'Y',
+      'c5': 'L',
+      'c6': 'Y',
+      'c7': 'A',
+      'c8': 'LOYALTY'
+    };
+
+    function ensureClueRewardLetters(clueList) {
+      if (!Array.isArray(clueList)) return;
+      const letters = ['O', 'L', 'T', 'Y', 'L', 'Y', 'A', 'LOYALTY'];
+      clueList.forEach((c, idx) => {
+        if (!c.rewardLetter || String(c.rewardLetter).trim() === '') {
+          c.rewardLetter = DEFAULT_LETTER_MAP[c.id] || letters[idx] || '';
+        }
+      });
+    }
+
+    function isCodeMatching(input, secretCode) {
+      if (!input || !secretCode) return false;
+      const inNorm = String(input).trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const secrets = String(secretCode).split('|').map(s => s.trim().toUpperCase().replace(/[^A-Z0-9]/g, ''));
+      return secrets.includes(inNorm);
+    }
 
     /* Default Squads */
     const INITIAL_TEAMS = [
@@ -1064,6 +1111,7 @@
       } catch (e) {
         clues = INITIAL_CLUES;
       }
+      ensureClueRewardLetters(clues);
 
       try {
         const storedTeams = localStorage.getItem(STORAGE_KEY_TEAMS);
@@ -1098,6 +1146,7 @@
       ensureValidActiveParticipant();
       saveMobileState(false);
       renderAllViews();
+      generateAdminLoginHuntQr();
       startStopwatch();
       syncFromServer();
       initCloudSync();
@@ -1115,7 +1164,10 @@
     function applyRemoteSnapshot(remote) {
       if (!remote || !remote.updatedAt || remote.updatedAt <= lastServerUpdatedAt) return;
       const prevAlertCount = alerts.length;
-      if (Array.isArray(remote.clues) && remote.clues.length) clues = remote.clues;
+      if (Array.isArray(remote.clues) && remote.clues.length) {
+        clues = remote.clues;
+        ensureClueRewardLetters(clues);
+      }
       if (Array.isArray(remote.teams) && remote.teams.length) teams = remote.teams;
       if (Array.isArray(remote.alerts)) alerts = remote.alerts;
       if (typeof remote.teamsEnabled === 'boolean') teamsEnabled = remote.teamsEnabled;
@@ -1485,11 +1537,7 @@
       // 1. Check if QR matches a Clue (by clueId or secretCode)
       const matchedClue = clues.find(c => {
         if (targetClueId && c.id.toLowerCase() === targetClueId.toLowerCase()) return true;
-        if (targetSecretCode) {
-          const cleanTarget = targetSecretCode.replace(/[^A-Z0-9]/gi, '').toUpperCase();
-          const cleanSecret = c.secretCode.replace(/[^A-Z0-9]/gi, '').toUpperCase();
-          if (c.secretCode.toUpperCase() === targetSecretCode.toUpperCase() || cleanTarget === cleanSecret) return true;
-        }
+        if (targetSecretCode && isCodeMatching(targetSecretCode, c.secretCode)) return true;
         return false;
       });
 
@@ -1566,6 +1614,26 @@
       document.getElementById('manualTeamCodeInput').value = '';
     }
 
+    let adminLoginHuntQrInstance = null;
+    function generateAdminLoginHuntQr() {
+      const container = document.getElementById('adminLoginHuntQrContainer');
+      if (!container || typeof QRCode === 'undefined') return;
+      container.innerHTML = '';
+      try {
+        const huntUrl = window.location.href ? window.location.href.split('#')[0] : 'https://noesis-boss.github.io/halloween-scavenger-hunt/';
+        adminLoginHuntQrInstance = new QRCode(container, {
+          text: huntUrl,
+          width: 130,
+          height: 130,
+          colorDark: '#0d0618',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      } catch (err) {
+        console.error('Failed to generate admin hunt login QR:', err);
+      }
+    }
+
     function switchTab(tab) {
       const tabHunt = document.getElementById('tabHunt');
       const tabSignIn = document.getElementById('tabSignIn');
@@ -1606,6 +1674,7 @@
         tabAdmin.classList.remove('hidden');
         btnAdmin.className = 'min-h-[48px] flex flex-col items-center justify-center py-1.5 text-halloween-blood transition relative';
         renderAdminDeck();
+        generateAdminLoginHuntQr();
       }
 
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1613,6 +1682,7 @@
     }
 
     function renderAllViews() {
+      ensureClueRewardLetters(clues);
       const team = getCurrentTeam();
       if (!team) return;
 
@@ -1709,6 +1779,13 @@
       const modal = document.getElementById('letterRevealModal');
       if (modal) modal.classList.add('hidden');
       switchTab('hunt');
+    }
+
+    function openSolvedLetterView(clueId) {
+      const clue = clues.find(c => c.id === clueId);
+      if (clue && clue.rewardLetter) {
+        showLetterReveal(clue);
+      }
     }
 
     function joinSoloPlayer() {
@@ -1956,7 +2033,7 @@
               ${isDone 
                 ? `<div class="flex items-center gap-1.5 flex-wrap">
                     <span class="text-halloween-slime font-bold flex items-center gap-1"><i data-lucide="check" class="w-3.5 h-3.5"></i> Solved</span>
-                    ${clue.rewardLetter && clue.rewardLetter !== 'LOYALTY' ? `<span class="px-2 py-0.5 rounded-lg bg-gradient-to-r from-halloween-orange to-amber-600 text-black font-mono font-black text-xs shadow-glow-orange flex items-center gap-1"><span>Letter:</span> <span class="text-sm font-black underline">${clue.rewardLetter}</span></span>` : ''}
+                    ${clue.rewardLetter && clue.rewardLetter !== 'LOYALTY' ? `<button type="button" onclick="openSolvedLetterView('${clue.id}')" class="px-2 py-0.5 rounded-lg bg-gradient-to-r from-halloween-orange to-amber-600 text-black font-mono font-black text-xs shadow-glow-orange flex items-center gap-1 hover:brightness-110 active:scale-95 transition cursor-pointer" title="Tap to view secret letter token"><span>Letter:</span> <span class="text-sm font-black underline">${clue.rewardLetter}</span></button>` : ''}
                    </div>` 
                 : '<span class="text-gray-400 font-medium">Physical rune passcode</span>'
               }
@@ -2065,15 +2142,13 @@
 
     function submitMobileClueVerification() {
       if (!currentVerifyingClue) return;
-      const input = document.getElementById('drawerCodeInput').value.trim().toUpperCase();
+      const input = document.getElementById('drawerCodeInput').value.trim();
       const error = document.getElementById('drawerErrorMsg');
-      const cleanInput = input.replace(/[^A-Z0-9]/g, '');
-      const cleanSecret = currentVerifyingClue.secretCode.toUpperCase().replace(/[^A-Z0-9]/g, '');
-      const hasValidCode = Boolean(input && (input === currentVerifyingClue.secretCode.toUpperCase() || cleanInput === cleanSecret));
+      const hasValidCode = Boolean(input && isCodeMatching(input, currentVerifyingClue.secretCode));
       const hasValidSelfie = Boolean(currentSelfieDataUrl);
 
       if (!hasValidCode && !hasValidSelfie) {
-        if (input && input !== currentVerifyingClue.secretCode.toUpperCase()) {
+        if (input) {
           error.innerText = `Incorrect passcode for "${currentVerifyingClue.title}". Check prop or snap selfie proof instead.`;
         } else {
           error.innerText = 'Please enter correct passcode OR snap team selfie proof to verify.';
